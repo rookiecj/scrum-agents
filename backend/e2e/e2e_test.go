@@ -9,8 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rookiecj/scrum-agents/backend/internal/classifier"
 	"github.com/rookiecj/scrum-agents/backend/internal/handler"
 	"github.com/rookiecj/scrum-agents/backend/internal/model"
+	"github.com/rookiecj/scrum-agents/backend/internal/summarizer"
 )
 
 // --- Response types mirroring handler package ---
@@ -30,7 +32,25 @@ type extractResponse struct {
 	Error    string         `json:"error,omitempty"`
 }
 
+type classifyResponse struct {
+	Classification *model.ClassificationResult `json:"classification,omitempty"`
+	Error          string                      `json:"error,omitempty"`
+}
+
+type summarizeResponse struct {
+	Result *summarizer.SummaryResult `json:"result,omitempty"`
+	Error  string                   `json:"error,omitempty"`
+}
+
+// mockLLMClient is a test double that returns predictable LLM responses.
+type mockLLMClient struct{}
+
+func (m *mockLLMClient) Complete(prompt string) (string, error) {
+	return `{"primary":"기술소개","confidence":0.85,"secondary":"튜토리얼","reasoning":"test"}`, nil
+}
+
 // setupAPIServer creates the same mux as cmd/server/main.go and returns an httptest.Server.
+// Uses a mock LLM client for classify and summarize endpoints.
 func setupAPIServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +59,18 @@ func setupAPIServer() *httptest.Server {
 	})
 	mux.HandleFunc("POST /api/detect", handler.HandleDetect())
 	mux.HandleFunc("POST /api/extract", handler.HandleExtract())
+
+	// LLM-dependent endpoints with mock client
+	mock := &mockLLMClient{}
+	cls := classifier.NewLLMClassifier(mock)
+	mux.HandleFunc("POST /api/classify", handler.HandleClassify(cls))
+
+	registry, err := summarizer.LoadTemplates("../prompts")
+	if err == nil {
+		sum := summarizer.NewSummarizer(registry, 0.6)
+		mux.HandleFunc("POST /api/summarize", handler.HandleSummarize(sum, mock))
+	}
+
 	return httptest.NewServer(mux)
 }
 
@@ -460,6 +492,99 @@ func TestE2E_DetectThenExtract_Pipeline(t *testing.T) {
 			}
 		})
 	}
+}
+
+// --- Classify endpoint ---
+
+func TestE2E_Classify(t *testing.T) {
+	srv := setupAPIServer()
+	defer srv.Close()
+
+	t.Run("valid content", func(t *testing.T) {
+		resp := postJSON(t, srv.URL+"/api/classify", map[string]string{"content": "This is a technical introduction to Go concurrency patterns."})
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status = %d, want 200", resp.StatusCode)
+		}
+		var cr classifyResponse
+		decodeJSON(t, resp, &cr)
+		if cr.Error != "" {
+			t.Errorf("unexpected error: %s", cr.Error)
+		}
+		if cr.Classification == nil {
+			t.Fatal("classification is nil")
+		}
+		if cr.Classification.Primary != "기술소개" {
+			t.Errorf("primary = %q, want %q", cr.Classification.Primary, "기술소개")
+		}
+	})
+
+	t.Run("empty content", func(t *testing.T) {
+		resp := postJSON(t, srv.URL+"/api/classify", map[string]string{"content": ""})
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", resp.StatusCode)
+		}
+		var cr classifyResponse
+		decodeJSON(t, resp, &cr)
+		if !strings.Contains(cr.Error, "content is required") {
+			t.Errorf("error = %q, want containing 'content is required'", cr.Error)
+		}
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		resp, err := http.Post(srv.URL+"/api/classify", "application/json", strings.NewReader("not json"))
+		if err != nil {
+			t.Fatalf("POST failed: %v", err)
+		}
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", resp.StatusCode)
+		}
+	})
+}
+
+// --- Summarize endpoint ---
+
+func TestE2E_Summarize(t *testing.T) {
+	srv := setupAPIServer()
+	defer srv.Close()
+
+	t.Run("empty content", func(t *testing.T) {
+		body := map[string]any{
+			"content":        "",
+			"classification": map[string]any{"primary": "techintro", "confidence": 0.9},
+		}
+		resp := postJSON(t, srv.URL+"/api/summarize", body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", resp.StatusCode)
+		}
+		var sr summarizeResponse
+		decodeJSON(t, resp, &sr)
+		if !strings.Contains(sr.Error, "content is required") {
+			t.Errorf("error = %q, want containing 'content is required'", sr.Error)
+		}
+	})
+
+	t.Run("missing classification", func(t *testing.T) {
+		body := map[string]any{"content": "Some content to summarize"}
+		resp := postJSON(t, srv.URL+"/api/summarize", body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", resp.StatusCode)
+		}
+		var sr summarizeResponse
+		decodeJSON(t, resp, &sr)
+		if !strings.Contains(sr.Error, "classification is required") {
+			t.Errorf("error = %q, want containing 'classification is required'", sr.Error)
+		}
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		resp, err := http.Post(srv.URL+"/api/summarize", "application/json", strings.NewReader("not json"))
+		if err != nil {
+			t.Fatalf("POST failed: %v", err)
+		}
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("status = %d, want 400", resp.StatusCode)
+		}
+	})
 }
 
 // buildSimplePDF creates a minimal valid PDF with extractable text.
