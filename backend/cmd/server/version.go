@@ -1,3 +1,6 @@
 package main
 
-const Version = "0.1.0"
+// Version is set at build time via:
+//
+//	go build -ldflags "-X main.Version=$(cat VERSION)" ./cmd/server
+var Version = "dev"

@@ -18,17 +18,16 @@ If not on `main`, warn and ask the user to confirm.
 
 ### 2. Read Current Versions
 
-Read versions from both components:
+Read versions from the VERSION files:
 
-**Backend** — `backend/cmd/server/version.go`:
+**Backend** — `backend/VERSION`:
 ```bash
-grep 'const Version' backend/cmd/server/version.go
+cat backend/VERSION
 ```
-Extract the semver string (e.g., `"0.1.0"` → `0.1.0`).
 
-**Frontend** — `frontend/package.json`:
+**Frontend** — `frontend/VERSION`:
 ```bash
-node -e "console.log(require('./frontend/package.json').version)"
+cat frontend/VERSION
 ```
 
 Display:
@@ -58,22 +57,23 @@ Version Bump:
 
 Ask the user to confirm the new version before proceeding (skip if arguments contain `--yes` or `-y`).
 
-### 4. Update Version Files
+### 4. Update VERSION Files
 
-**Backend** — update `backend/cmd/server/version.go`:
-Use the Edit tool to replace the version string:
-```go
-const Version = "<new-version>"
-```
+**Backend** — write to `backend/VERSION`:
+Use the Write tool to write the new version (with trailing newline) to `backend/VERSION`.
 
-**Frontend** — update `frontend/package.json`:
+**Frontend** — write to `frontend/VERSION`:
+Use the Write tool to write the new version (with trailing newline) to `frontend/VERSION`.
+
+**Frontend package.json** — keep in sync:
 ```bash
 cd frontend && npm version <new-version> --no-git-tag-version --allow-same-version
 ```
 
-Verify both updates:
+Verify all updates:
 ```bash
-grep 'const Version' backend/cmd/server/version.go
+cat backend/VERSION
+cat frontend/VERSION
 node -e "console.log(require('./frontend/package.json').version)"
 ```
 
@@ -89,8 +89,8 @@ cd backend && gofmt -l . | head -20
 # Vet (lint)
 cd backend && go vet ./...
 
-# Build
-cd backend && go build ./...
+# Build (with version injection from VERSION file)
+cd backend && go build -ldflags "-X main.Version=$(cat VERSION)" ./cmd/server
 
 # Test
 cd backend && go test ./... -v -cover
@@ -101,7 +101,7 @@ cd backend && go test ./... -v -cover
 # Lint (type check)
 cd frontend && npm run lint
 
-# Build
+# Build (VERSION file is read by vite.config.ts at build time)
 cd frontend && npm run build
 
 # Test
@@ -127,7 +127,7 @@ If any check fails, show `❌` with the error and stop. Do NOT proceed to taggin
 ### 6. Commit Version Bump
 
 ```bash
-git add backend/cmd/server/version.go frontend/package.json
+git add backend/VERSION frontend/VERSION frontend/package.json
 git commit -m "$(cat <<'EOF'
 chore: bump version to v<new-version>
 
@@ -154,8 +154,8 @@ Display the release summary:
 ## Release v<new-version>
 
 ### Versions Updated
-- Backend:  X.Y.Z → <new-version>
-- Frontend: X.Y.Z → <new-version>
+- Backend:  X.Y.Z → <new-version> (backend/VERSION)
+- Frontend: X.Y.Z → <new-version> (frontend/VERSION)
 
 ### Quality Checks
 - All passed ✅
@@ -169,9 +169,19 @@ Display the release summary:
 - Create GitHub Release from tag: gh release create v<new-version> --generate-notes
 ```
 
+## Version File Locations
+
+| Component | Source of Truth | Consumed By |
+|-----------|----------------|-------------|
+| Backend | `backend/VERSION` | `go build -ldflags "-X main.Version=$(cat VERSION)"` injects into binary |
+| Frontend | `frontend/VERSION` | `vite.config.ts` reads file and defines `__APP_VERSION__` at build time |
+| Frontend | `frontend/package.json` | Kept in sync for npm ecosystem compatibility |
+
 ## Important
 - Never tag or push if any quality check fails
-- Both backend and frontend MUST have the same version after release
+- Both `backend/VERSION` and `frontend/VERSION` MUST have the same version after release
+- `frontend/package.json` version is also synced but VERSION file is the source of truth
 - Use annotated tags (`git tag -a`) not lightweight tags
 - The version format is strict semver: `MAJOR.MINOR.PATCH`
+- VERSION files contain only the version string with a trailing newline (e.g., `0.2.0\n`)
 - If arguments contain `--dry-run`, run all checks but skip commit/tag/push steps

@@ -18,7 +18,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"ok"}`)
+		fmt.Fprintf(w, `{"status":"ok","version":"%s"}`, Version)
 	})
 	mux.HandleFunc("POST /api/detect", handler.HandleDetect())
 	mux.HandleFunc("POST /api/extract", handler.HandleExtract())
@@ -50,7 +50,7 @@ func main() {
 	}
 
 	addr := ":8080"
-	slog.Info("starting server", slog.String("addr", addr))
+	slog.Info("starting server", slog.String("addr", addr), slog.String("version", Version))
 	if err := http.ListenAndServe(addr, logging.Middleware(mux)); err != nil {
 		slog.Error("server failed", slog.String("error", err.Error()))
 		os.Exit(1)

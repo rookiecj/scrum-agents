@@ -131,13 +131,24 @@ gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:verified"
 gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:blocked" --state open
 ```
 
+## Versioning
+
+Each component has a `VERSION` file as the single source of truth:
+
+| Component | Version File | How It's Consumed |
+|-----------|-------------|-------------------|
+| Backend | `backend/VERSION` | Injected at build time via `-ldflags "-X main.Version=$(cat VERSION)"` |
+| Frontend | `frontend/VERSION` | Read by `vite.config.ts` → `__APP_VERSION__` global constant |
+
+Both VERSION files must always contain the same semver value. Use `/sprint:release` to bump versions.
+
 ## Commands
 
 ```bash
 # Backend
-cd backend && go build ./...
+cd backend && go build -ldflags "-X main.Version=$(cat VERSION)" ./cmd/server
 cd backend && go test ./... -v -cover
-cd backend && go run ./cmd/server
+cd backend && go run -ldflags "-X main.Version=$(cat VERSION)" ./cmd/server
 
 # Frontend
 cd frontend && npm install
