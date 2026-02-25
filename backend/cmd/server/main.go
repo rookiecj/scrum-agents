@@ -15,6 +15,13 @@ import (
 func main() {
 	logging.Init()
 
+	// Load .env file if it exists; fall back to system environment variables otherwise.
+	if err := loadEnv(""); err != nil {
+		slog.Warn("could not load .env file, using system environment variables",
+			slog.String("error", err.Error()),
+		)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
