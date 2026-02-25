@@ -1,0 +1,58 @@
+name: Spike / Research
+description: Research or investigation task
+title: "[Spike] "
+labels: ["type:spike"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Spike / Research
+        Document the research question and expected outcomes.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Research Question
+      description: What are we trying to learn or prove?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this research needed? What decision does it inform?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope & Timebox
+      description: What is in/out of scope? How much time should be spent?
+      placeholder: |
+        - Timebox: X hours
+        - In scope: ...
+        - Out of scope: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-output
+    attributes:
+      label: Expected Output
+      description: What deliverables are expected? (Document, PoC, recommendation, etc.)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Backend
+        - Frontend
+        - Infrastructure
+        - General
+    validations:
+      required: true

@@ -1,0 +1,75 @@
+name: User Story
+description: Create a new user story
+title: "[Story] "
+labels: ["type:story", "sprint:backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## User Story
+        Please fill out the template below to create a user story.
+
+  - type: textarea
+    id: story
+    attributes:
+      label: User Story
+      description: "As a [role], I want [feature], so that [benefit]"
+      placeholder: "As a user, I want to log in with my email, so that I can access my account."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the acceptance criteria for this story
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] Given ..., when ..., then ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0-Critical
+        - P1-High
+        - P2-Medium
+        - P3-Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: story-points
+    attributes:
+      label: Story Points
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Backend
+        - Frontend
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Any additional context, mockups, or references
+    validations:
+      required: false

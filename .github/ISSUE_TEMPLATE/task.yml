@@ -1,0 +1,74 @@
+name: Task
+description: Create a development task
+title: "[Task] "
+labels: ["type:task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Task
+        Describe the development task to be completed.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be done?
+    validations:
+      required: true
+
+  - type: textarea
+    id: subtasks
+    attributes:
+      label: Sub-tasks
+      description: Break down into smaller tasks if needed
+      placeholder: |
+        - [ ] Sub-task 1
+        - [ ] Sub-task 2
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0-Critical
+        - P1-High
+        - P2-Medium
+        - P3-Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: story-points
+    attributes:
+      label: Story Points
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Backend
+        - Frontend
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: parent-issue
+    attributes:
+      label: Parent Story
+      description: "Link to parent user story (e.g., #123)"
+    validations:
+      required: false

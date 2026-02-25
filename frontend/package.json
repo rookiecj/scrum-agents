@@ -1,0 +1,12 @@
+{
+  "name": "scrum-agents-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'TODO: configure dev server'",
+    "build": "echo 'TODO: configure build'",
+    "test": "echo 'TODO: configure tests'",
+    "lint": "echo 'TODO: configure linter'"
+  }
+}

@@ -1,0 +1,71 @@
+name: Sprint Close
+
+on:
+  workflow_dispatch:
+    inputs:
+      sprint-name:
+        description: 'Sprint name to close (e.g., Sprint 1)'
+        required: true
+        type: string
+
+jobs:
+  sprint-close:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Close sprint issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sprintName = '${{ inputs.sprint-name }}';
+            console.log(`Closing sprint: ${sprintName}`);
+
+            // Find issues labeled sprint:current
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'sprint:current',
+              state: 'open',
+            });
+
+            console.log(`Found ${issues.data.length} open issues in current sprint`);
+
+            for (const issue of issues.data) {
+              // Remove sprint:current label
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: 'sprint:current',
+                });
+              } catch (e) {
+                console.log(`Could not remove sprint:current from #${issue.number}`);
+              }
+
+              // Add sprint:backlog label for carry-over
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['sprint:backlog'],
+              });
+
+              // Add comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Carried over from ${sprintName}. This issue was not completed and has been moved back to backlog.`,
+              });
+
+              console.log(`Processed issue #${issue.number}: ${issue.title}`);
+            }
+
+            console.log('Sprint close completed.');
