@@ -4,7 +4,7 @@
 
 ## Sprint Goal
 
-백엔드와 프론트엔드에 구조화된 로깅 정책을 적용하여, 일관된 로그 포맷과 레벨 기반 로깅 인프라를 확보한다.
+LLM 인프라를 확장하여 .env 기반 credential 관리를 도입하고, Gemini provider를 추가하며, API 키 미설정 provider를 UI에서 비활성화한다.
 
 ## Board
 
@@ -26,8 +26,9 @@
 
 ### Verified (status:verified)
 
-- #21 [Story] Backend 구조화된 로깅 정책 적용 - log/slog (3pts, Backend) — CLOSED (PR #23 merged)
-- #22 [Story] Frontend 로깅 유틸리티 및 에러 리포팅 적용 (2pts, Frontend) — CLOSED (PR #24 merged)
+- #25 [Story] .env 파일 기반 credential 관리 (2pts, Backend) — CLOSED (PR #28 merged)
+- #26 [Story] Gemini LLM provider 추가 (5pts, Backend+Frontend) — CLOSED (PR #29 merged)
+- #27 [Story] API 키 미설정 provider UI 비활성화 (3pts, Backend+Frontend) — CLOSED (PR #30 merged)
 
 ### Blocked (status:blocked)
 
@@ -37,13 +38,18 @@
 
 | # | Title | Agent | Status | Branch | Notes |
 |---|-------|-------|--------|--------|-------|
-| #21 | Backend 구조화된 로깅 정책 적용 (log/slog) | backend-dev | verified/closed | feature/21-backend-logging | log/slog JSON handler, HTTP middleware, handler logging, 100% coverage. PR #23 merged. |
-| #22 | Frontend 로깅 유틸리티 및 에러 리포팅 적용 | frontend-dev | verified/closed | feature/22-frontend-logging | Logger utility, ErrorBoundary, API error logging, 25 new tests. PR #24 merged. |
+| #25 | .env 파일 기반 credential 관리 | sequential-dev | verified/closed | feature/25-env-credential-management | godotenv dependency, loadEnv helper with graceful fallback, .env.example with 3 API keys, 5 tests. PR #28 merged. |
+| #26 | Gemini LLM provider 추가 | sequential-dev | verified/closed | feature/26-gemini-llm-provider | GeminiProvider (gemini.go), ProviderGemini constant, DefaultGeminiConfig, Gemini radio button in UrlInput.tsx, api.ts types updated, 4 backend + 1 frontend test. PR #29 merged. |
+| #27 | API 키 미설정 provider UI 비활성화 | sequential-dev | verified/closed | feature/27-provider-availability-ui | GET /api/providers endpoint, disabled radio buttons with tooltip, auto-select first available, warning when none available, 6 backend + 12 frontend tests. PR #30 merged. |
 
 ## Handoff Notes
 
-- **From Sprint 3**: Templates in `backend/prompts/*.json`. Extractors in `internal/extractor/`. E2E tests in `backend/e2e/` and `frontend/e2e/`.
+- **From Sprint 4**: `internal/logging` package (slog JSON handler, HTTP middleware). `src/utils/logger.ts` for frontend logging. ErrorBoundary in `main.tsx`.
 - **CI Workflow**: `.github/workflows/ci.yml` - Go build/test + Frontend build/test on push/PR to main.
-- **API Endpoints**: `/api/classify` (POST, `{"content":"..."}`) and `/api/summarize` (POST, `{"content":"...","classification":{...}}`). Requires `ANTHROPIC_API_KEY` env var.
-- **Backend Logging (#21)**: New `internal/logging` package. `logging.Init()` sets up JSON slog handler; configure via `LOG_LEVEL` env var (debug/info/warn/error, default: info). `logging.Middleware(handler)` wraps HTTP handlers for automatic request logging (method, path, status, duration_ms). All handlers now log errors at Error level and successes at Debug level with structured attributes.
-- **Frontend Logging (#22)**: `src/utils/logger.ts` exports `logger` (default instance) and `createLogger(minLevel?)` factory. Import `logger` from `./utils/logger` to use. ErrorBoundary wraps the App in `main.tsx`. API calls in `App.tsx` now go through `fetchWithLogging()` which logs failures.
+- **API Endpoints**: `/api/classify` (POST), `/api/summarize` (POST), `/api/detect` (POST), `/api/extract` (POST), `/api/providers` (GET). Claude requires `ANTHROPIC_API_KEY`.
+- **LLM Adapter**: `internal/llm/adapter.go` — Provider interface with Complete/Classify/Summarize/Name methods. Claude, OpenAI, and Gemini implemented.
+- **Frontend Provider Selector**: `UrlInput.tsx` fetches `/api/providers` on load, disables unavailable providers with tooltip, auto-selects first available. `api.ts` types include `ProviderName = 'claude' | 'openai' | 'gemini'` and `ProviderInfo`.
+- **.env Credential Management**: `godotenv` loads `.env` at startup via `loadEnv()` in `cmd/server/env.go`. `.env.example` documents ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY.
+- **Gemini Provider**: `internal/llm/gemini.go` — Google Generative AI API (v1beta), default model `gemini-2.0-flash`, auth via `x-goog-api-key` header.
+- **Provider Availability**: `GET /api/providers` returns `[{"name":"claude","available":true,"envVar":"ANTHROPIC_API_KEY"}, ...]`. Checks env var presence, never exposes key values.
+- **Sprint 5 Total**: 10 story points, all completed (3/3 tickets closed).
