@@ -1,0 +1,51 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+vendor/
+
+# TypeScript / Node
+node_modules/
+dist/
+build/
+.next/
+*.js.map
+*.tsbuildinfo
+.npm
+.yarn/
+.pnp.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage & Testing
+coverage/
+*.cover
+*.coverage
+htmlcov/
+
+# Build artifacts
+bin/
+tmp/
+
+# Claude Code
+.claude/memory/
