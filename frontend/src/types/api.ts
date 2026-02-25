@@ -25,7 +25,7 @@ export interface ClassificationResult {
 
 export interface SummarizeRequest {
   url: string
-  provider?: 'claude' | 'openai'
+  provider?: 'claude' | 'openai' | 'gemini'
 }
 
 export interface SummarizeResponse {

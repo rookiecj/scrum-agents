@@ -10,6 +10,7 @@ type ProviderType string
 const (
 	ProviderClaude ProviderType = "claude"
 	ProviderOpenAI ProviderType = "openai"
+	ProviderGemini ProviderType = "gemini"
 )
 
 // Provider defines the interface for LLM providers.

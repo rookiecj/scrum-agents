@@ -1,13 +1,13 @@
 import { useState, FormEvent } from 'react'
 
 interface UrlInputProps {
-  onSubmit: (url: string, provider: 'claude' | 'openai') => void
+  onSubmit: (url: string, provider: 'claude' | 'openai' | 'gemini') => void
   isLoading: boolean
 }
 
 export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
   const [url, setUrl] = useState('')
-  const [provider, setProvider] = useState<'claude' | 'openai'>('claude')
+  const [provider, setProvider] = useState<'claude' | 'openai' | 'gemini'>('claude')
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -75,6 +75,17 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
             disabled={isLoading}
           />{' '}
           OpenAI
+        </label>
+        <label style={{ fontSize: '0.875rem', cursor: 'pointer' }}>
+          <input
+            type="radio"
+            name="provider"
+            value="gemini"
+            checked={provider === 'gemini'}
+            onChange={() => setProvider('gemini')}
+            disabled={isLoading}
+          />{' '}
+          Gemini
         </label>
       </div>
     </form>

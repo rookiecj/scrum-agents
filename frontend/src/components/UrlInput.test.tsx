@@ -15,6 +15,7 @@ describe('UrlInput', () => {
 
     expect(screen.getByLabelText('Claude')).toBeInTheDocument()
     expect(screen.getByLabelText('OpenAI')).toBeInTheDocument()
+    expect(screen.getByLabelText('Gemini')).toBeInTheDocument()
   })
 
   it('calls onSubmit with URL and provider on form submit', () => {
@@ -53,5 +54,18 @@ describe('UrlInput', () => {
     fireEvent.click(screen.getByText('Summarize'))
 
     expect(onSubmit).toHaveBeenCalledWith('https://example.com', 'openai')
+  })
+
+  it('switches provider to Gemini', () => {
+    const onSubmit = vi.fn()
+    render(<UrlInput onSubmit={onSubmit} isLoading={false} />)
+
+    fireEvent.click(screen.getByLabelText('Gemini'))
+    fireEvent.change(screen.getByLabelText('URL'), {
+      target: { value: 'https://example.com' },
+    })
+    fireEvent.click(screen.getByText('Summarize'))
+
+    expect(onSubmit).toHaveBeenCalledWith('https://example.com', 'gemini')
   })
 })

@@ -20,7 +20,7 @@ export function App() {
   const [step, setStep] = useState<SummarizeStep>('done')
   const [result, setResult] = useState<SummarizeResponse | null>(null)
 
-  const handleSubmit = async (url: string, provider: 'claude' | 'openai') => {
+  const handleSubmit = async (url: string, provider: 'claude' | 'openai' | 'gemini') => {
     setResult(null)
     logger.info('Starting summarization', { url, provider })
 
