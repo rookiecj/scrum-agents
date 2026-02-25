@@ -166,7 +166,11 @@ For each ticket in the DEV queue (priority order: critical → high → medium �
 **Component-specific implementation:**
 
 For `component:backend` tickets:
-- Create feature branch: `git checkout -b feature/<number>-<short-description>`
+- Fetch latest main and create feature branch:
+  ```bash
+  git fetch origin main
+  git checkout -b feature/<number>-<short-description> origin/main
+  ```
 - Implement in `backend/` following Go conventions from CLAUDE.md
 - Write tests (table-driven tests)
 - Run `cd backend && go build ./... && go test ./... -v`
@@ -180,7 +184,11 @@ For `component:backend` tickets:
   ```
 
 For `component:frontend` tickets:
-- Create feature branch: `git checkout -b feature/<number>-<short-description>`
+- Fetch latest main and create feature branch:
+  ```bash
+  git fetch origin main
+  git checkout -b feature/<number>-<short-description> origin/main
+  ```
 - Implement in `frontend/` following TypeScript conventions from CLAUDE.md
 - Write tests
 - Run `cd frontend && npm run build && npm test`
@@ -223,9 +231,11 @@ Task tool call #1:
     tickets in priority order (critical → high → medium → low).
     For each ticket:
     1. Claim: `status:planned` → `status:in-progress`
-    2. Create feature branch, implement, write tests, commit
-    3. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
-    4. Mark `status:dev-complete`
+    2. Fetch latest main and create feature branch:
+       `git fetch origin main && git checkout -b feature/<number>-<short-description> origin/main`
+    3. Implement, write tests, commit
+    4. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
+    5. Mark `status:dev-complete`
     After completing each ticket, update `PROGRESS.md`:
     - Move the ticket in the Board section to reflect its new status
     - Add a row to the Ticket Log table
@@ -248,9 +258,11 @@ Task tool call #2:
     tickets in priority order (critical → high → medium → low).
     For each ticket:
     1. Claim: `status:planned` → `status:in-progress`
-    2. Create feature branch, implement, write tests, commit
-    3. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
-    4. Mark `status:dev-complete`
+    2. Fetch latest main and create feature branch:
+       `git fetch origin main && git checkout -b feature/<number>-<short-description> origin/main`
+    3. Implement, write tests, commit
+    4. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
+    5. Mark `status:dev-complete`
     After completing each ticket, update `PROGRESS.md`:
     - Move the ticket in the Board section to reflect its new status
     - Add a row to the Ticket Log table
