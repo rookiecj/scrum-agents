@@ -60,9 +60,15 @@ func HandleDetect() http.HandlerFunc {
 // HandleExtract returns a handler that extracts content from a URL.
 func HandleExtract() http.HandlerFunc {
 	extractors := map[model.LinkType]extractor.Extractor{
-		model.LinkTypeArticle: extractor.NewArticleExtractor(),
-		model.LinkTypeYouTube: extractor.NewYouTubeExtractor(),
+		model.LinkTypeArticle:    extractor.NewArticleExtractor(),
+		model.LinkTypeYouTube:    extractor.NewYouTubeExtractor(),
+		model.LinkTypePDF:        extractor.NewPDFExtractor(),
+		model.LinkTypeTwitter:    extractor.NewTwitterExtractor(),
+		model.LinkTypeNewsletter: extractor.NewNewsletterExtractor(),
 	}
+
+	// Fallback extractor for unsupported types
+	fallback := extractor.NewArticleExtractor()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req ExtractRequest
@@ -84,11 +90,8 @@ func HandleExtract() http.HandlerFunc {
 
 		ext, ok := extractors[linkType]
 		if !ok {
-			writeJSON(w, http.StatusOK, ExtractResponse{
-				LinkInfo: model.LinkInfo{URL: req.URL, LinkType: linkType},
-				Error:    "extraction not yet supported for type: " + string(linkType),
-			})
-			return
+			// Graceful fallback: attempt generic HTML extraction
+			ext = fallback
 		}
 
 		result, err := ext.Extract(req.URL)
