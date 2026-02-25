@@ -26,6 +26,16 @@ jobs:
             const sprintName = '${{ inputs.sprint-name }}';
             console.log(`Closing sprint: ${sprintName}`);
 
+            // Status labels to remove from carry-over tickets
+            const statusLabels = [
+              'status:planned',
+              'status:in-progress',
+              'status:dev-complete',
+              'status:in-review',
+              'status:verified',
+              'status:blocked',
+            ];
+
             // Find issues labeled sprint:current
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -49,6 +59,24 @@ jobs:
                 console.log(`Could not remove sprint:current from #${issue.number}`);
               }
 
+              // Remove all status:* labels
+              const issueLabels = issue.labels.map(l => l.name);
+              for (const statusLabel of statusLabels) {
+                if (issueLabels.includes(statusLabel)) {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      name: statusLabel,
+                    });
+                    console.log(`Removed ${statusLabel} from #${issue.number}`);
+                  } catch (e) {
+                    console.log(`Could not remove ${statusLabel} from #${issue.number}`);
+                  }
+                }
+              }
+
               // Add sprint:backlog label for carry-over
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -62,7 +90,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `Carried over from ${sprintName}. This issue was not completed and has been moved back to backlog.`,
+                body: `Carried over from ${sprintName}. This issue was not completed and has been moved back to backlog. All status labels have been cleared.`,
               });
 
               console.log(`Processed issue #${issue.number}: ${issue.title}`);

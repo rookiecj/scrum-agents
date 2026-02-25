@@ -29,14 +29,39 @@ GitHub Issues + Projects 기반 Scrum 개발 환경. Go 백엔드 + TypeScript �
 | Priority | `priority:critical`, `priority:high`, `priority:medium`, `priority:low` |
 | Sprint | `sprint:current`, `sprint:next`, `sprint:backlog` |
 | Component | `component:backend`, `component:frontend` |
-| Status | `status:blocked`, `status:review` |
+| Status | `status:planned`, `status:in-progress`, `status:dev-complete`, `status:in-review`, `status:verified`, `status:blocked` |
 
-### Issue Workflow
+### Issue Workflow (Queue-Based)
+
+Issues flow through a label-based state machine. Status labels are **mutually exclusive** — always remove the previous status before adding the next.
+
+```
+status:planned → status:in-progress → status:dev-complete → status:in-review → status:verified → CLOSED
+  (DEV queue)     (DEV working)         (QA queue)            (QA working)       (QA passed)
+       ↑                                                            |
+       └────────────────────────────────────────────────────────────┘
+                                                           (QA failed → rework)
+```
+
+**State Transitions:**
+
+| From | To | Actor | Action |
+|------|----|-------|--------|
+| (new) | `status:planned` | Sprint Start | Enqueue to DEV queue |
+| `status:planned` | `status:in-progress` | Dev Agent | Claim ticket |
+| `status:in-progress` | `status:dev-complete` | Dev Agent | Implementation done, tests pass |
+| `status:dev-complete` | `status:in-review` | QA Agent | Claim ticket for verification |
+| `status:in-review` | `status:verified` | QA Agent | All AC verified, close issue |
+| `status:in-review` | `status:planned` | QA Agent | Verification failed, rework needed |
+| (any) | `status:blocked` | Any Agent | Blocker identified |
+
+**Workflow Steps:**
 1. Product Owner creates issues with appropriate labels
-2. Sprint Planning: issues labeled `sprint:current`
-3. Developer picks issue → creates branch `feature/<issue-number>-<description>`
-4. Development → PR → Code Review → Merge
-5. Scrum Master updates Project Board status
+2. Sprint Planning: issues labeled `sprint:next` (no `status:*` labels yet)
+3. Sprint Start: `sprint:next` → `sprint:current` + `status:planned`
+4. Dev Agent claims from queue → creates branch → implements → marks `status:dev-complete`
+5. QA Agent claims from queue → verifies AC → marks `status:verified` + closes (or rework)
+6. Scrum Master monitors queue health
 
 ### Branch Naming
 - Feature: `feature/<issue-number>-<short-description>`
@@ -61,6 +86,7 @@ GitHub Issues + Projects 기반 Scrum 개발 환경. Go 백엔드 + TypeScript �
 | `product-owner` | Product Owner | Backlog management, prioritization, story writing |
 | `backend-dev` | Backend Dev | Go development, testing, PRs |
 | `frontend-dev` | Frontend Dev | TypeScript development, testing, PRs |
+| `qa` | QA Agent | Verification of dev-complete tickets, AC validation, rework decisions |
 | `reviewer` | Code Reviewer | PR review, quality assurance |
 
 ## Code Conventions
@@ -77,6 +103,28 @@ GitHub Issues + Projects 기반 Scrum 개발 환경. Go 백엔드 + TypeScript �
 - Component-based architecture
 - ESLint + Prettier
 - Meaningful type definitions (avoid `any`)
+
+## Queue Monitoring
+
+```bash
+# DEV Queue — tickets ready for development
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:planned" --state open
+
+# In Progress — developers actively working
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:in-progress" --state open
+
+# QA Queue — tickets awaiting verification
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:dev-complete" --state open
+
+# In Review — QA actively verifying
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:in-review" --state open
+
+# Verified — QA passed, ready to close
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:verified"
+
+# Blocked
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:blocked" --state open
+```
 
 ## Commands
 
