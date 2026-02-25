@@ -1,36 +1,33 @@
-.PHONY: build build-backend build-frontend test test-backend test-frontend run lint lint-backend lint-frontend clean help
+.PHONY: build test lint fmt clean install run version help
 
-# Default target
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-build: build-backend build-frontend ## Build both backend and frontend
+build: ## Build both backend and frontend
+	$(MAKE) -C backend build
+	$(MAKE) -C frontend build
 
-build-backend: ## Build Go backend
-	cd backend && go build ./...
+test: ## Run all tests
+	$(MAKE) -C backend test
+	$(MAKE) -C frontend test
 
-build-frontend: ## Build frontend
-	cd frontend && npm run build
+lint: ## Run linters on both codebases
+	$(MAKE) -C backend lint
+	$(MAKE) -C frontend lint
 
-test: test-backend test-frontend ## Run all tests with coverage
+fmt: ## Format backend Go files
+	$(MAKE) -C backend fmt
 
-test-backend: ## Run Go backend tests with coverage
-	cd backend && go test ./... -v -cover
+install: ## Install frontend dependencies
+	$(MAKE) -C frontend install
 
-test-frontend: ## Run frontend tests
-	cd frontend && npm test
+run: ## Run the backend server
+	$(MAKE) -C backend run
 
-run: ## Run the Go backend server
-	cd backend && go run ./cmd/server
+clean: ## Remove all build artifacts
+	$(MAKE) -C backend clean
+	$(MAKE) -C frontend clean
 
-lint: lint-backend lint-frontend ## Run linters on both codebases
-
-lint-backend: ## Run go vet on backend
-	cd backend && go vet ./...
-
-lint-frontend: ## Run TypeScript type check on frontend
-	cd frontend && npm run lint
-
-clean: ## Remove build artifacts
-	rm -rf backend/cmd/server/server
-	rm -rf frontend/dist
+version: ## Show versions
+	@echo "Backend:  $$(cat backend/VERSION)"
+	@echo "Frontend: $$(cat frontend/VERSION)"
