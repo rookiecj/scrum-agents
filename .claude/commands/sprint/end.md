@@ -3,6 +3,9 @@ You are the Scrum Master closing a sprint. Review completion status, handle carr
 ## Input
 Sprint stop arguments: $ARGUMENTS
 
+## Auto Mode
+If arguments contain `auto`, skip all user prompts and auto-generate all retrospective content (What went well / What didn't go well / Improvements) based on sprint data analysis. Do NOT use `AskUserQuestion` — proceed directly through all steps without pausing.
+
 ## Instructions
 
 ### 1. Identify the Sprint
@@ -129,12 +132,16 @@ Also check previous retrospectives for recurring patterns:
 ls docs/retrospectives/
 ```
 
-Create a retrospective document. Ask the user for input on:
+Create a retrospective document.
+
+**If NOT in auto mode**: Ask the user for input on:
 - What went well?
 - What didn't go well?
 - What to improve?
 
 If the user provides feedback, incorporate it. Otherwise, generate observations based on the sprint data.
+
+**If in auto mode**: Skip user prompts entirely. Auto-generate all retrospective sections based on sprint data (completion rate, rework count, queue bottlenecks, timeline analysis, etc.).
 
 Write the retrospective as a markdown file:
 ```bash
@@ -248,7 +255,8 @@ Present the final sprint closure summary to the user:
 ```
 
 ## Important
-- Always ask the user for retrospective input before writing
+- In auto mode, skip all user prompts and auto-generate everything
+- In normal mode, always ask the user for retrospective input before writing
 - Never delete or modify completed tickets — only update labels
 - Keep sprint-specific labels (e.g., `sprint:sprint-3`) on tickets for historical tracking
 - If ALL tickets are complete, congratulate the team

@@ -37,7 +37,7 @@ Issues flow through a label-based state machine. Status labels are **mutually ex
 
 ```
 status:planned → status:in-progress → status:dev-complete → status:in-review → status:verified → CLOSED
-  (DEV queue)     (DEV working)         (QA queue)            (QA working)       (QA passed)
+  (DEV queue)     (DEV working)         (QA queue)            (QA working)       (QA passed)      (Dev merges)
        ↑                                                            |
        └────────────────────────────────────────────────────────────┘
                                                            (QA failed → rework)
@@ -49,10 +49,11 @@ status:planned → status:in-progress → status:dev-complete → status:in-revi
 |------|----|-------|--------|
 | (new) | `status:planned` | Sprint Start | Enqueue to DEV queue |
 | `status:planned` | `status:in-progress` | Dev Agent | Claim ticket |
-| `status:in-progress` | `status:dev-complete` | Dev Agent | Implementation done, tests pass |
+| `status:in-progress` | `status:dev-complete` | Dev Agent | Implementation done, tests pass, PR created |
 | `status:dev-complete` | `status:in-review` | QA Agent | Claim ticket for verification |
-| `status:in-review` | `status:verified` | QA Agent | All AC verified, close issue |
-| `status:in-review` | `status:planned` | QA Agent | Verification failed, rework needed |
+| `status:in-review` | `status:verified` | QA Agent | All AC verified (do NOT close issue) |
+| `status:verified` | CLOSED | Scrum Master | Merge PR to main (`gh pr merge --squash`), close issue |
+| `status:in-review` | `status:planned` | QA Agent | Verification failed, post results, rework needed |
 | (any) | `status:blocked` | Any Agent | Blocker identified |
 | `status:blocked` | `status:planned` | Scrum Master | Blocker resolved, return to DEV queue |
 | `status:in-progress` | `status:planned` | Scrum Master | Agent crashed/abandoned, recover to DEV queue |
@@ -62,9 +63,10 @@ status:planned → status:in-progress → status:dev-complete → status:in-revi
 1. Product Owner creates issues with appropriate labels
 2. Sprint Planning: issues labeled `sprint:next` (no `status:*` labels yet)
 3. Sprint Start: `sprint:next` → `sprint:current` + `status:planned`
-4. Dev Agent claims from queue → creates branch → implements → marks `status:dev-complete`
-5. QA Agent claims from queue → verifies AC → marks `status:verified` + closes (or rework)
-6. Scrum Master monitors queue health
+4. Dev Agent claims from queue → creates branch → implements → creates PR → marks `status:dev-complete`
+5. QA Agent claims from queue → verifies AC → marks `status:verified` (or rework → `status:planned`)
+6. Scrum Master merges verified PRs (`gh pr merge --squash`) → issue auto-closed via `Closes #N`
+7. Scrum Master monitors queue health
 
 ### Branch Naming
 - Feature: `feature/<issue-number>-<short-description>`

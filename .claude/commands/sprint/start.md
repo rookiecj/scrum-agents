@@ -95,10 +95,14 @@ Show the PROGRESS.md board section to the user as confirmation.
 
 ### 5. Dispatch Agents
 
-Ask the user which mode to use, or detect from arguments:
+Detect dispatch mode from arguments, or ask the user:
+
+- If arguments contain `parallel` or `para` → use **Parallel Mode** automatically (skip asking)
+- If arguments contain `sequential` or `seq` → use **Sequential Mode** automatically (skip asking)
+- Otherwise → ask the user which mode to use
 
 #### Sequential Mode (single agent)
-Process tickets one by one, acting as both Dev and QA:
+Process tickets one by one, acting as Dev, QA, and Scrum Master:
 
 For each ticket in the DEV queue (priority order: critical → high → medium → low):
 
@@ -106,13 +110,58 @@ For each ticket in the DEV queue (priority order: critical → high → medium �
 1. Claim: `status:planned` → `status:in-progress`
 2. Read the full ticket: `gh issue view <number> -R rookiecj/scrum-agents`
 3. Implement based on component label (see component-specific instructions below)
-4. Complete: `status:in-progress` → `status:dev-complete`
+4. Create a PR for the feature branch:
+   ```bash
+   git push -u origin feature/<number>-<short-description>
+   gh pr create -R rookiecj/scrum-agents \
+     --title "feat: <description> (#<number>)" \
+     --body "Closes #<number>" \
+     --base main
+   ```
+5. Complete: `status:in-progress` → `status:dev-complete`
 
 **QA Phase:**
-5. Claim: `status:dev-complete` → `status:in-review`
-6. Verify each acceptance criterion
-7. If pass: `status:in-review` → `status:verified`, close the issue
-8. If fail: `status:in-review` → `status:planned` with failure comment, then re-process later
+6. Claim: `status:dev-complete` → `status:in-review`
+7. Verify each acceptance criterion
+8. If pass: `status:in-review` → `status:verified` (do NOT close the issue)
+9. If fail:
+   - Post verification results as a comment on the ticket:
+     ```bash
+     gh issue comment <number> -R rookiecj/scrum-agents \
+       --body "❌ **QA Failed**: Returning to DEV queue for rework.
+
+     **Verification Results:**
+     | AC | Result | Detail |
+     |----|--------|--------|
+     | <acceptance criterion 1> | PASS/FAIL | <detail> |
+     | <acceptance criterion 2> | PASS/FAIL | <detail> |
+
+     **Failure Summary**: <what specifically failed and why>
+     **Suggested Fix**: <actionable guidance for the developer>"
+     ```
+   - Transition: `status:in-review` → `status:planned`
+     ```bash
+     gh issue edit <number> -R rookiecj/scrum-agents \
+       --remove-label "status:in-review" \
+       --add-label "status:planned"
+     ```
+   - The ticket returns to the DEV queue and should be prioritized for rework in the next cycle
+
+**Merge Phase (Scrum Master, after QA pass):**
+10. For each `status:verified` ticket, the Scrum Master merges the PR:
+    ```bash
+    # Find the PR for this ticket's branch
+    gh pr list -R rookiecj/scrum-agents --head feature/<number>-<short-description> --json number,url
+
+    # Merge the PR (squash merge to keep main history clean)
+    gh pr merge <pr-number> -R rookiecj/scrum-agents --squash --delete-branch
+    ```
+    The PR body's `Closes #<number>` will automatically close the issue on merge.
+    If auto-close does not trigger, close manually:
+    ```bash
+    gh issue close <number> -R rookiecj/scrum-agents \
+      --comment "✅ PR merged to main."
+    ```
 
 **Component-specific implementation:**
 
@@ -122,6 +171,13 @@ For `component:backend` tickets:
 - Write tests (table-driven tests)
 - Run `cd backend && go build ./... && go test ./... -v`
 - Commit with conventional commit: `feat: <description> (#<number>)`
+- Push and create PR:
+  ```bash
+  git push -u origin feature/<number>-<short-description>
+  gh pr create -R rookiecj/scrum-agents \
+    --title "feat: <description> (#<number>)" \
+    --body "Closes #<number>"
+  ```
 
 For `component:frontend` tickets:
 - Create feature branch: `git checkout -b feature/<number>-<short-description>`
@@ -129,6 +185,13 @@ For `component:frontend` tickets:
 - Write tests
 - Run `cd frontend && npm run build && npm test`
 - Commit with conventional commit: `feat: <description> (#<number>)`
+- Push and create PR:
+  ```bash
+  git push -u origin feature/<number>-<short-description>
+  gh pr create -R rookiecj/scrum-agents \
+    --title "feat: <description> (#<number>)" \
+    --body "Closes #<number>"
+  ```
 
 For tickets with both components:
 - Implement backend first, then frontend
@@ -158,7 +221,11 @@ Task tool call #1:
 
     You are working on sprint tickets. Process ALL `component:backend` + `status:planned`
     tickets in priority order (critical → high → medium → low).
-    For each ticket: claim → implement → mark dev-complete.
+    For each ticket:
+    1. Claim: `status:planned` → `status:in-progress`
+    2. Create feature branch, implement, write tests, commit
+    3. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
+    4. Mark `status:dev-complete`
     After completing each ticket, update `PROGRESS.md`:
     - Move the ticket in the Board section to reflect its new status
     - Add a row to the Ticket Log table
@@ -179,7 +246,11 @@ Task tool call #2:
 
     You are working on sprint tickets. Process ALL `component:frontend` + `status:planned`
     tickets in priority order (critical → high → medium → low).
-    For each ticket: claim → implement → mark dev-complete.
+    For each ticket:
+    1. Claim: `status:planned` → `status:in-progress`
+    2. Create feature branch, implement, write tests, commit
+    3. Push branch and create a PR (`gh pr create` with `Closes #<number>` in body)
+    4. Mark `status:dev-complete`
     After completing each ticket, update `PROGRESS.md`:
     - Move the ticket in the Board section to reflect its new status
     - Add a row to the Ticket Log table
@@ -208,12 +279,44 @@ Task tool call #3:
 
     You are verifying sprint tickets. Process ALL `status:dev-complete` tickets.
     For each ticket: claim → verify AC → pass or fail.
+
+    **If verification fails:**
+    - Post a detailed comment on the ticket with:
+      - AC-by-AC verification results table (PASS/FAIL per criterion)
+      - Failure summary explaining what specifically failed
+      - Suggested fix with actionable guidance for the developer
+    - Transition: `status:in-review` → `status:planned` (return to DEV queue)
+
+    **If verification passes:**
+    - Transition: `status:in-review` → `status:verified` (do NOT close the issue)
+
     After verifying each ticket, update `PROGRESS.md`:
     - Move the ticket in the Board section to reflect its new status
     - Add a row to the Ticket Log table with verification result
     Stop when the QA queue is empty AND no tickets are in `status:in-progress`
     (meaning no more dev work will produce new QA items).
 ```
+
+**Phase 3 — Scrum Master merges verified PRs**
+After QA Agent completes, the Scrum Master merges all `status:verified` tickets' PRs:
+
+```bash
+# Find all verified tickets
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:verified" --state open --json number
+```
+
+For each `status:verified` ticket:
+1. Find and merge the PR:
+   ```bash
+   gh pr list -R rookiecj/scrum-agents --head feature/<number>-<short-description> --json number,url
+   gh pr merge <pr-number> -R rookiecj/scrum-agents --squash --delete-branch
+   ```
+2. The PR body's `Closes #<number>` will automatically close the issue on merge.
+   If auto-close does not trigger, close manually:
+   ```bash
+   gh issue close <number> -R rookiecj/scrum-agents \
+     --comment "✅ PR merged to main."
+   ```
 
 **Error handling:**
 - If a Dev Agent task fails mid-execution, its claimed tickets (`status:in-progress`) will be stale. The Scrum Master should detect these via Queue Health Check and transition them back to `status:planned`.
