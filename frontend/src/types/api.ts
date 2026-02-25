@@ -36,3 +36,11 @@ export interface SummarizeResponse {
 }
 
 export type SummarizeStep = 'detecting' | 'extracting' | 'classifying' | 'summarizing' | 'done' | 'error'
+
+export type ProviderName = 'claude' | 'openai' | 'gemini'
+
+export interface ProviderInfo {
+  name: string
+  available: boolean
+  envVar: string
+}

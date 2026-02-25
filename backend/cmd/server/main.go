@@ -29,6 +29,7 @@ func main() {
 	})
 	mux.HandleFunc("POST /api/detect", handler.HandleDetect())
 	mux.HandleFunc("POST /api/extract", handler.HandleExtract())
+	mux.HandleFunc("GET /api/providers", handler.HandleProviders())
 
 	// LLM provider registration
 	claudeKey := os.Getenv("ANTHROPIC_API_KEY")

@@ -3,7 +3,7 @@ import { UrlInput } from './components/UrlInput'
 import { ProgressIndicator } from './components/ProgressIndicator'
 import { SummaryResult } from './components/SummaryResult'
 import { logger } from './utils/logger'
-import type { SummarizeResponse, SummarizeStep } from './types/api'
+import type { SummarizeResponse, SummarizeStep, ProviderName } from './types/api'
 
 /**
  * Helper that performs a fetch and logs failures with the request URL and status code.
@@ -20,7 +20,7 @@ export function App() {
   const [step, setStep] = useState<SummarizeStep>('done')
   const [result, setResult] = useState<SummarizeResponse | null>(null)
 
-  const handleSubmit = async (url: string, provider: 'claude' | 'openai' | 'gemini') => {
+  const handleSubmit = async (url: string, provider: ProviderName) => {
     setResult(null)
     logger.info('Starting summarization', { url, provider })
 
