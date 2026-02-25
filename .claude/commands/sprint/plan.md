@@ -77,28 +77,44 @@ gh issue edit <number> -R rookiecj/scrum-agents --add-label "sprint:sprint-<N>,s
 
 > **⚠️ Important**: Do NOT assign any `status:*` labels during planning. Status labels (`status:planned`, `status:in-progress`, etc.) are only added when the sprint starts via `/sprint start`. Planning only assigns `sprint:next`.
 
-### 7. Output Sprint Plan Summary
+### 7. Write PLAN.md
 
-Present the final sprint plan:
+Write the sprint plan to `PLAN.md` in the project root. This file serves as the single source of truth for the current sprint.
 
+Use the Write tool to create `PLAN.md` with the following structure:
+
+```markdown
+# Sprint <N> Plan (<YYYY-MM-DD> ~ <YYYY-MM-DD>)
+
+## Sprint Goal
+
+<1-2 sentence summary of what this sprint aims to achieve, outcome-oriented>
+
+## Tickets
+
+| # | Title | Type | Priority | Points | Component |
+|---|-------|------|----------|--------|-----------|
+| #N | Title | story/task/bug | critical/high/medium/low | Xpts | backend/frontend |
+
+## Sprint Capacity
+
+- **Total Story Points**: XX pts
+- **Backend**: XX pts
+- **Frontend**: XX pts
+
+## Risks & Dependencies
+
+- <any identified risks, blockers, or inter-ticket dependencies>
 ```
-## Sprint <N> Plan (YYYY-MM-DD ~ YYYY-MM-DD)
 
-### Selected Tickets
-| # | Title | Points | Component | Priority |
-|---|-------|--------|-----------|----------|
+**Guidelines:**
 
-### Sprint Capacity
-- Total Story Points: XX
-- Backend: XX pts
-- Frontend: XX pts
+- Sprint Goal should be concise and outcome-oriented (e.g., "URL 타입 감지 기능 구현 및 프론트엔드 연동")
+- Extract type, priority, points from issue labels
+- If story points are missing from a ticket, mark as `?pts` and warn the user
+- If `PLAN.md` already exists, overwrite it with the new sprint plan
 
-### Sprint Goal
-<1-2 sentence summary of what this sprint aims to achieve>
-
-### Risks & Dependencies
-- <any identified risks or blockers>
-```
+After writing, present the same content to the user as the sprint plan summary.
 
 ## Important
 - Never exceed ~30 story points per sprint
