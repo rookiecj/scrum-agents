@@ -59,7 +59,10 @@ func HandleDetect() http.HandlerFunc {
 
 // HandleExtract returns a handler that extracts content from a URL.
 func HandleExtract() http.HandlerFunc {
-	articleExtractor := extractor.NewArticleExtractor()
+	extractors := map[model.LinkType]extractor.Extractor{
+		model.LinkTypeArticle: extractor.NewArticleExtractor(),
+		model.LinkTypeYouTube: extractor.NewYouTubeExtractor(),
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req ExtractRequest
@@ -79,8 +82,8 @@ func HandleExtract() http.HandlerFunc {
 			return
 		}
 
-		// For now, only article extraction is supported
-		if linkType != model.LinkTypeArticle {
+		ext, ok := extractors[linkType]
+		if !ok {
 			writeJSON(w, http.StatusOK, ExtractResponse{
 				LinkInfo: model.LinkInfo{URL: req.URL, LinkType: linkType},
 				Error:    "extraction not yet supported for type: " + string(linkType),
@@ -88,7 +91,7 @@ func HandleExtract() http.HandlerFunc {
 			return
 		}
 
-		result, err := articleExtractor.Extract(req.URL)
+		result, err := ext.Extract(req.URL)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, ExtractResponse{Error: "extraction failed: " + err.Error()})
 			return

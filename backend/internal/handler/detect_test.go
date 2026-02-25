@@ -117,7 +117,7 @@ func TestHandleExtract(t *testing.T) {
 	})
 
 	t.Run("unsupported type returns info", func(t *testing.T) {
-		body := `{"url":"https://www.youtube.com/watch?v=abc"}`
+		body := `{"url":"https://twitter.com/user/status/123"}`
 		req := httptest.NewRequest("POST", "/api/extract", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
