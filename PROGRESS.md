@@ -18,7 +18,7 @@
 
 ### QA Queue (status:dev-complete)
 
-- #21 [Story] Backend 구조화된 로깅 정책 적용 - log/slog (3pts, Backend) — PR #23
+(none)
 
 ### In Review (status:in-review)
 
@@ -26,7 +26,8 @@
 
 ### Verified (status:verified)
 
-(none)
+- #21 [Story] Backend 구조화된 로깅 정책 적용 - log/slog (3pts, Backend) — CLOSED (PR #23 merged)
+- #22 [Story] Frontend 로깅 유틸리티 및 에러 리포팅 적용 (2pts, Frontend) — CLOSED (PR #24 merged)
 
 ### Blocked (status:blocked)
 
@@ -36,11 +37,13 @@
 
 | # | Title | Agent | Status | Branch | Notes |
 |---|-------|-------|--------|--------|-------|
-| #21 | Backend 구조화된 로깅 정책 적용 (log/slog) | backend-dev | dev-complete | feature/21-backend-logging | internal/logging pkg, HTTP middleware, handler logging, main.go migration |
+| #21 | Backend 구조화된 로깅 정책 적용 (log/slog) | backend-dev | verified/closed | feature/21-backend-logging | log/slog JSON handler, HTTP middleware, handler logging, 100% coverage. PR #23 merged. |
+| #22 | Frontend 로깅 유틸리티 및 에러 리포팅 적용 | frontend-dev | verified/closed | feature/22-frontend-logging | Logger utility, ErrorBoundary, API error logging, 25 new tests. PR #24 merged. |
 
 ## Handoff Notes
 
 - **From Sprint 3**: Templates in `backend/prompts/*.json`. Extractors in `internal/extractor/`. E2E tests in `backend/e2e/` and `frontend/e2e/`.
 - **CI Workflow**: `.github/workflows/ci.yml` - Go build/test + Frontend build/test on push/PR to main.
 - **API Endpoints**: `/api/classify` (POST, `{"content":"..."}`) and `/api/summarize` (POST, `{"content":"...","classification":{...}}`). Requires `ANTHROPIC_API_KEY` env var.
-- **Logging (#21)**: New `internal/logging` package. `logging.Init()` sets up JSON slog handler; configure via `LOG_LEVEL` env var (debug/info/warn/error, default: info). `logging.Middleware(handler)` wraps HTTP handlers for automatic request logging (method, path, status, duration_ms). All handlers now log errors at Error level and successes at Debug level with structured attributes.
+- **Backend Logging (#21)**: New `internal/logging` package. `logging.Init()` sets up JSON slog handler; configure via `LOG_LEVEL` env var (debug/info/warn/error, default: info). `logging.Middleware(handler)` wraps HTTP handlers for automatic request logging (method, path, status, duration_ms). All handlers now log errors at Error level and successes at Debug level with structured attributes.
+- **Frontend Logging (#22)**: `src/utils/logger.ts` exports `logger` (default instance) and `createLogger(minLevel?)` factory. Import `logger` from `./utils/logger` to use. ErrorBoundary wraps the App in `main.tsx`. API calls in `App.tsx` now go through `fetchWithLogging()` which logs failures.
