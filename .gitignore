@@ -49,3 +49,5 @@ tmp/
 
 # Claude Code
 .claude/memory/
+
+test-results/

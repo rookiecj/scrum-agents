@@ -11,6 +11,8 @@ install: ## Install dependencies
 dev: ## Start development server
 	npm run dev
 
+run: dev ## Run the development server
+
 build: ## Build for production (type check + vite build)
 	npm run build
 

@@ -22,7 +22,13 @@ install: ## Install frontend dependencies
 	$(MAKE) -C frontend install
 
 run: ## Run the backend server
+	$(MAKE) -j 2 run-backend run-frontend
+
+run-backend: ## Run the backend server
 	$(MAKE) -C backend run
+
+run-frontend: ## Run the frontend server
+	$(MAKE) -C frontend run
 
 clean: ## Remove all build artifacts
 	$(MAKE) -C backend clean

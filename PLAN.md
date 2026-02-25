@@ -1,29 +1,38 @@
-# Sprint 4 Plan (2026-03-02 ~ 2026-03-06)
+# Sprint 5 Plan (2026-03-09 ~ 2026-03-13)
 
 ## Sprint Goal
 
-백엔드와 프론트엔드에 구조화된 로깅 정책을 적용하여, 일관된 로그 포맷과 레벨 기반 로깅 인프라를 확보한다.
+LLM 인프라를 확장하여 .env 기반 credential 관리를 도입하고, Gemini provider를 추가하며, API 키 미설정 provider를 UI에서 비활성화한다.
 
 ## Tickets
 
 | # | Title | Type | Priority | Points | Component |
 |---|-------|------|----------|--------|-----------|
-| #21 | Backend 구조화된 로깅 정책 적용 (log/slog) | story | medium | 3pts | backend |
-| #22 | Frontend 로깅 유틸리티 및 에러 리포팅 적용 | story | medium | 2pts | frontend |
+| #25 | .env 파일 기반 credential 관리 | story | medium | 2pts | backend |
+| #26 | Gemini LLM provider 추가 | story | medium | 5pts | backend+frontend |
+| #27 | API 키 미설정 provider UI 비활성화 | story | medium | 3pts | backend+frontend |
 
 ## Sprint Capacity
 
-- **Total Story Points**: 5 pts
-- **Backend**: 3 pts
-- **Frontend**: 2 pts
+- **Total Story Points**: 10 pts
+- **Backend**: 10 pts (3 tickets 모두 backend 포함)
+- **Frontend**: 8 pts (#26, #27)
+
+## Execution Order (Sequential 권장)
+
+티켓 간 의존성이 있으므로 순차 실행:
+
+1. **#25** .env credential 관리 (2pts, backend only) — 선행 인프라
+2. **#26** Gemini provider 추가 (5pts, backend+frontend) — #25 완료 후
+3. **#27** Provider UI 비활성화 (3pts, backend+frontend) — #25, #26 완료 후
 
 ## Risks & Dependencies
 
-- #21과 #22는 독립적이므로 병렬 진행 가능
-- Go 1.21+ 필요 (log/slog 사용) — 현재 go.mod에 go 1.22 설정되어 있어 문제 없음
-- 외부 라이브러리 의존성 없음 (backend: 표준 라이브러리, frontend: 자체 구현)
+- **#25 → #26 → #27 순차 의존성**: Parallel 모드 불가, Sequential 모드로 진행
+- **Gemini API 접근**: GOOGLE_API_KEY 필요 — QA 시 실제 API 호출 또는 mock 필요
+- **외부 라이브러리**: .env 로딩에 `godotenv` 사용 시 go.mod 의존성 추가
 
 ## Deferred to Next Sprint
 
-- #7 사용자 인증 시스템 (5pts) — #8의 선행 조건
+- #7 사용자 인증 시스템 (5pts) — Sprint 2부터 5회 deferred
 - #8 요약 결과 저장 및 히스토리 조회 (5pts) — #7에 의존
