@@ -119,6 +119,16 @@ gh issue edit <number> -R rookiecj/scrum-agents \
 
 ### 6. Write Retrospective
 
+First, read `PLAN.md` and `PROGRESS.md` from the project root to gather sprint context:
+
+- `PLAN.md`: Sprint goal, original ticket list, capacity plan
+- `PROGRESS.md`: Final board state, ticket log, handoff notes
+
+Also check previous retrospectives for recurring patterns:
+```bash
+ls docs/retrospectives/
+```
+
 Create a retrospective document. Ask the user for input on:
 - What went well?
 - What didn't go well?
@@ -138,7 +148,8 @@ Write to `docs/retrospectives/sprint-<N>.md`:
 # Sprint <N> Retrospective (YYYY-MM-DD ~ YYYY-MM-DD)
 
 ## Sprint Summary
-- **Goal**: <sprint goal from planning>
+- **Goal**: <sprint goal from PLAN.md>
+- **Goal Achieved**: Yes / Partially / No — <brief explanation>
 - **Planned**: XX points (YY tickets)
 - **Completed**: XX points (YY tickets)
 - **Velocity**: XX points
@@ -168,21 +179,45 @@ Write to `docs/retrospectives/sprint-<N>.md`:
 - #<number> <title> — last stage: <stage>, reason: <reason>
 - ...
 
-## What Went Well 👍
+## What Went Well
 - <positive observations>
 
-## What Didn't Go Well 👎
+## What Didn't Go Well
 - <issues and obstacles>
 
-## Action Items for Next Sprint 🎯
-- [ ] <concrete improvement action>
-- ...
+## Lessons Learned
+- <key takeaways from handoff notes, rework patterns, blockers>
+
+## Next Sprint Recommendations
+
+### Carry-over Tickets (priority)
+| # | Title | Points | Last Stage | Recommendation |
+|---|-------|--------|------------|----------------|
+| #N | Title | Xpts | stage | Continue / Split / Re-estimate / Drop |
+
+### Suggested New Work
+- <new tickets or improvements identified during this sprint>
+- <technical debt or refactoring discovered during development>
+- <items from Handoff Notes that need follow-up>
+
+### Process Improvements
+- [ ] <concrete action to improve workflow>
+- [ ] <concrete action to reduce bottlenecks>
 
 ## Velocity Trend
 | Sprint | Planned | Completed | Rate |
 |--------|---------|-----------|------|
 | Sprint <N> | XX | XX | XX% |
 ```
+
+**Guidelines for retrospective:**
+
+- Compare the sprint goal (from `PLAN.md`) against actual outcome
+- Use `PROGRESS.md` Ticket Log to identify patterns (rework cycles, blocked time)
+- Use Handoff Notes to identify cross-agent coordination issues or follow-up work
+- Carry-over tickets should have clear recommendations: continue as-is, split into smaller tickets, re-estimate, or drop
+- Suggested New Work should include anything discovered during the sprint (tech debt, missing features, bugs found)
+- If previous retrospectives exist, check if past action items were addressed
 
 ### 7. Output Summary
 
@@ -197,12 +232,18 @@ Present the final sprint closure summary to the user:
 - Rework Count: X
 
 ### Carry-over to Backlog
-- #<number> <title> (was in: <last stage>)
+- #<number> <title> (was in: <last stage>) — recommendation
+
+### Next Sprint Recommendations
+- Carry-over: X tickets (XX pts)
+- Suggested new work: <brief summary>
+- Process improvements: <brief summary>
 
 ### Retrospective
 - Saved to: docs/retrospectives/sprint-<N>.md
 
 ### Next Steps
+- Review the retrospective for next sprint recommendations
 - Run `/sprint plan` to plan the next sprint
 ```
 

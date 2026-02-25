@@ -24,7 +24,23 @@ gh label create "sprint:sprint-<N>" -R rookiecj/scrum-agents \
   --color "1d76db"
 ```
 
-### 3. Review Backlog
+### 3. Review Previous Retrospective
+
+Check if a previous sprint retrospective exists:
+```bash
+ls docs/retrospectives/ 2>/dev/null | sort | tail -1
+```
+
+If found, read the latest retrospective and note:
+
+- **Carry-over Tickets**: tickets that need to be prioritized
+- **Suggested New Work**: items discovered during the previous sprint
+- **Process Improvements**: workflow changes to apply
+- **Velocity**: previous sprint's velocity for capacity planning
+
+Present these recommendations to the user before backlog review.
+
+### 4. Review Backlog
 
 List all backlog tickets available for selection:
 ```bash
@@ -39,7 +55,7 @@ Present the backlog to the user in a table format:
 | # | Title | Type | Priority | Points | Component |
 |---|-------|------|----------|--------|-----------|
 
-### 4. Select Sprint Items
+### 5. Select Sprint Items
 
 - Ask the user which tickets to include in the sprint, or suggest a selection based on:
   - Priority (critical/high first)
@@ -48,7 +64,7 @@ Present the backlog to the user in a table format:
   - Component balance (backend vs frontend)
 - Warn if total points exceed recommended sprint capacity
 
-### 5. Refine Selected Tickets
+### 6. Refine Selected Tickets
 
 For each selected ticket, review and refine to implementation level:
 - Read the full issue body: `gh issue view <number> -R rookiecj/scrum-agents`
@@ -64,7 +80,7 @@ For each selected ticket, review and refine to implementation level:
   gh issue edit <number> -R rookiecj/scrum-agents --body "..."
   ```
 
-### 6. Assign Sprint Labels
+### 7. Assign Sprint Labels
 
 For each selected ticket:
 ```bash
@@ -77,7 +93,7 @@ gh issue edit <number> -R rookiecj/scrum-agents --add-label "sprint:sprint-<N>,s
 
 > **⚠️ Important**: Do NOT assign any `status:*` labels during planning. Status labels (`status:planned`, `status:in-progress`, etc.) are only added when the sprint starts via `/sprint start`. Planning only assigns `sprint:next`.
 
-### 7. Write PLAN.md
+### 8. Write PLAN.md
 
 Write the sprint plan to `PLAN.md` in the project root. This file serves as the single source of truth for the current sprint.
 
