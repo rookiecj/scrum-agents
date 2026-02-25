@@ -54,6 +54,9 @@ status:planned → status:in-progress → status:dev-complete → status:in-revi
 | `status:in-review` | `status:verified` | QA Agent | All AC verified, close issue |
 | `status:in-review` | `status:planned` | QA Agent | Verification failed, rework needed |
 | (any) | `status:blocked` | Any Agent | Blocker identified |
+| `status:blocked` | `status:planned` | Scrum Master | Blocker resolved, return to DEV queue |
+| `status:in-progress` | `status:planned` | Scrum Master | Agent crashed/abandoned, recover to DEV queue |
+| `status:in-review` | `status:dev-complete` | Scrum Master | QA agent crashed, recover to QA queue |
 
 **Workflow Steps:**
 1. Product Owner creates issues with appropriate labels
@@ -87,7 +90,7 @@ status:planned → status:in-progress → status:dev-complete → status:in-revi
 | `backend-dev` | Backend Dev | Go development, testing, PRs |
 | `frontend-dev` | Frontend Dev | TypeScript development, testing, PRs |
 | `qa` | QA Agent | Verification of dev-complete tickets, AC validation, rework decisions |
-| `reviewer` | Code Reviewer | PR review, quality assurance |
+| `reviewer` | Code Reviewer | PR review, quality assurance (operates on PRs independently, not part of queue state machine) |
 
 ## Code Conventions
 

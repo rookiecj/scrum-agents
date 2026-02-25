@@ -22,6 +22,8 @@ gh issue comment <number> -R rookiecj/scrum-agents \
   --body "🚀 **Dev**: Claiming ticket for development."
 ```
 
+**Verify claim**: Re-read the issue to confirm `status:in-progress` is set. If another agent claimed it first (label is not `status:in-progress`), skip and pick the next ticket from the queue.
+
 #### Implement
 1. Create a feature branch: `feature/<issue-number>-<short-description>`
 2. Read the full issue: `gh issue view <number> -R rookiecj/scrum-agents`
@@ -39,6 +41,9 @@ gh issue edit <number> -R rookiecj/scrum-agents \
 gh issue comment <number> -R rookiecj/scrum-agents \
   --body "✅ **Dev Complete**: Implementation done and tests passing. Ready for QA."
 ```
+
+#### Termination
+Stop processing when the input queue is empty (no `component:frontend` + `status:planned` tickets remain). Report the number of tickets completed and any issues encountered.
 
 #### Handle QA Rework
 When picking up a `status:planned` ticket, check for previous QA failure comments:

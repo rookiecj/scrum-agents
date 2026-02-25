@@ -93,8 +93,41 @@ status:planned → status:in-progress → status:dev-complete → status:in-revi
 | `status:in-review` | `status:verified` | QA Agent |
 | `status:in-review` | `status:planned` | QA Agent (rework) |
 | (any) | `status:blocked` | Any Agent |
+| `status:blocked` | `status:planned` | Scrum Master (unblock) |
+| `status:in-progress` | `status:planned` | Scrum Master (abandonment) |
 
 **Status labels are mutually exclusive** — always remove the previous status label before adding the next one.
+
+### Unblocking Tickets
+
+When a blocker is resolved, transition the ticket back to the DEV queue:
+```bash
+gh issue edit <number> -R rookiecj/scrum-agents \
+  --remove-label "status:blocked" \
+  --add-label "status:planned"
+gh issue comment <number> -R rookiecj/scrum-agents \
+  --body "🔓 **Unblocked**: Blocker resolved. Returning to DEV queue."
+```
+
+### Recovering Abandoned Tickets
+
+If a ticket is stuck in `status:in-progress` with no agent working on it (agent crash, timeout, context overflow), recover it:
+```bash
+gh issue edit <number> -R rookiecj/scrum-agents \
+  --remove-label "status:in-progress" \
+  --add-label "status:planned"
+gh issue comment <number> -R rookiecj/scrum-agents \
+  --body "♻️ **Recovered**: Ticket was abandoned (agent stopped). Returning to DEV queue."
+```
+
+Similarly for `status:in-review` tickets abandoned by QA:
+```bash
+gh issue edit <number> -R rookiecj/scrum-agents \
+  --remove-label "status:in-review" \
+  --add-label "status:dev-complete"
+gh issue comment <number> -R rookiecj/scrum-agents \
+  --body "♻️ **Recovered**: QA verification was interrupted. Returning to QA queue."
+```
 
 ## Tools & Commands
 

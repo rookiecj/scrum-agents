@@ -23,6 +23,8 @@ gh issue comment <number> -R rookiecj/scrum-agents \
   --body "🔍 **QA**: Claiming ticket for verification."
 ```
 
+**Verify claim**: Re-read the issue to confirm `status:in-review` is set. If another agent claimed it first, skip and pick the next ticket from the queue.
+
 ### 2. Read the Ticket
 
 ```bash
@@ -75,15 +77,16 @@ EOF
 
 ### 4b. Fail — Rework Needed
 
-If any acceptance criteria fail:
+Before sending back, **check rework history**: count the number of previous "QA Failed" comments on the issue.
+
+**If rework count < 3**, send back to DEV queue:
 ```bash
-# Send back to DEV queue
 gh issue edit <number> -R rookiecj/scrum-agents \
   --remove-label "status:in-review" \
   --add-label "status:planned"
 gh issue comment <number> -R rookiecj/scrum-agents \
   --body "$(cat <<'EOF'
-❌ **QA Failed — Rework Required**
+❌ **QA Failed — Rework Required** (rework #N of max 3)
 
 **Failed AC:**
 - AC X: <what failed>
@@ -100,9 +103,36 @@ EOF
 )"
 ```
 
+**If rework count >= 3**, escalate to blocked instead:
+```bash
+gh issue edit <number> -R rookiecj/scrum-agents \
+  --remove-label "status:in-review" \
+  --add-label "status:blocked"
+gh issue comment <number> -R rookiecj/scrum-agents \
+  --body "$(cat <<'EOF'
+🚫 **QA Failed — Max Rework Exceeded (3/3)**
+
+This ticket has failed QA verification 3 times. Escalating to blocked for human intervention.
+
+**Latest failure:**
+- AC X: <what failed>
+
+**Recommendation:** This ticket may need requirements clarification, a design spike, or pair programming to resolve.
+EOF
+)"
+```
+
 ### 5. Move to Next Ticket
 
 After processing a ticket (pass or fail), check the queue for the next `status:dev-complete` ticket and repeat.
+
+### 6. Termination
+
+Stop processing when **both** conditions are met:
+1. The QA queue is empty (no `status:dev-complete` tickets)
+2. No tickets are in `status:in-progress` (no more dev work will produce new QA items)
+
+Report the number of tickets verified, passed, failed, and escalated to blocked.
 
 ## Important
 

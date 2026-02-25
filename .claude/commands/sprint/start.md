@@ -16,6 +16,14 @@ Sprint start arguments: $ARGUMENTS
 
 ### 2. Activate the Sprint & Enqueue to DEV Queue
 
+First, validate that no `sprint:next` tickets have pre-existing `status:*` labels (they should not have been assigned during planning):
+```bash
+# Check for incorrectly labeled tickets
+gh issue list -R rookiecj/scrum-agents -l "sprint:next" --state open --json number,labels | \
+  jq '[.[] | select(.labels[].name | startswith("status:"))]'
+```
+If any tickets have `status:*` labels, remove them before proceeding.
+
 Move all `sprint:next` tickets to `sprint:current` and enqueue them as `status:planned`:
 ```bash
 # For each sprint ticket
@@ -101,13 +109,65 @@ For tickets with both components:
 - Same branch for both
 
 #### Parallel Mode (multi-agent team)
-Spawn separate agents using the Task tool:
 
-1. **Backend Dev Agent** (`subagent_type: "general-purpose"`): Process `component:backend` + `status:planned` tickets
-2. **Frontend Dev Agent** (`subagent_type: "general-purpose"`): Process `component:frontend` + `status:planned` tickets
-3. **QA Agent** (`subagent_type: "general-purpose"`): Poll `status:dev-complete` queue and verify
+Use the Task tool to spawn agents in two phases. Each agent runs in an **isolated git worktree** (`isolation: "worktree"`) to avoid working directory conflicts.
 
-Each agent follows its respective agent definition (`.claude/agents/backend-dev.md`, `.claude/agents/frontend-dev.md`, `.claude/agents/qa.md`).
+**Pre-flight: Handle dual-component tickets**
+Before dispatching, check for tickets with both `component:backend` and `component:frontend`. These must be assigned to one agent explicitly (default: backend-dev handles the full ticket). Remove the other component label temporarily, or split the ticket.
+
+**Phase 1 — Dev Agents (parallel)**
+Read the agent definition files and include their full content in the Task tool prompt. Spawn Backend Dev and Frontend Dev simultaneously:
+
+```
+Task tool call #1:
+  description: "Backend dev sprint work"
+  subagent_type: "general-purpose"
+  isolation: "worktree"
+  prompt: |
+    <paste full contents of .claude/agents/backend-dev.md>
+
+    ## Sprint Context
+    You are working on sprint tickets. Process ALL `component:backend` + `status:planned`
+    tickets in priority order (critical → high → medium → low).
+    For each ticket: claim → implement → mark dev-complete.
+    Stop when the DEV queue for backend is empty.
+
+Task tool call #2:
+  description: "Frontend dev sprint work"
+  subagent_type: "general-purpose"
+  isolation: "worktree"
+  prompt: |
+    <paste full contents of .claude/agents/frontend-dev.md>
+
+    ## Sprint Context
+    You are working on sprint tickets. Process ALL `component:frontend` + `status:planned`
+    tickets in priority order (critical → high → medium → low).
+    For each ticket: claim → implement → mark dev-complete.
+    Stop when the DEV queue for frontend is empty.
+```
+
+**Phase 2 — QA Agent (after dev agents complete or when QA queue has items)**
+Wait for at least one Dev Agent to complete, or check that `status:dev-complete` tickets exist, then spawn QA:
+
+```
+Task tool call #3:
+  description: "QA verification sprint work"
+  subagent_type: "general-purpose"
+  isolation: "worktree"
+  prompt: |
+    <paste full contents of .claude/agents/qa.md>
+
+    ## Sprint Context
+    You are verifying sprint tickets. Process ALL `status:dev-complete` tickets.
+    For each ticket: claim → verify AC → pass or fail.
+    Stop when the QA queue is empty AND no tickets are in `status:in-progress`
+    (meaning no more dev work will produce new QA items).
+```
+
+**Error handling:**
+- If a Dev Agent task fails mid-execution, its claimed tickets (`status:in-progress`) will be stale. The Scrum Master should detect these via Queue Health Check and transition them back to `status:planned`.
+- If the QA Agent task fails, `status:in-review` tickets should be transitioned back to `status:dev-complete` by the Scrum Master.
+- After all agents complete, run a final Queue Health Check to detect any orphaned tickets.
 
 ### 5. Handle Blockers
 
@@ -118,10 +178,18 @@ gh issue edit <number> -R rookiecj/scrum-agents \
   --remove-label "status:planned" \
   --add-label "status:blocked"
 gh issue comment <number> -R rookiecj/scrum-agents \
-  --body "🚫 **Blocked**: <reason for block>"
+  --body "🚫 **Blocked**: <reason for block>. Previous state: status:planned."
 ```
 - Skip to the next unblocked ticket
-- Return to blocked tickets when the blocker is resolved
+
+When the blocker is resolved, unblock the ticket:
+```bash
+gh issue edit <number> -R rookiecj/scrum-agents \
+  --remove-label "status:blocked" \
+  --add-label "status:planned"
+gh issue comment <number> -R rookiecj/scrum-agents \
+  --body "🔓 **Unblocked**: Blocker resolved. Returning to DEV queue."
+```
 
 ### 6. Sprint Progress Updates
 

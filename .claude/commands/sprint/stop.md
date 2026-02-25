@@ -96,12 +96,25 @@ gh issue comment <number> -R rookiecj/scrum-agents \
 
 ### 5. Clean Up Completed Tickets
 
-For each closed (completed) ticket:
+First, close any tickets that are `status:verified` but still open (in case the close failed during QA):
 ```bash
-# Remove sprint:current and status labels (keep sprint-specific label for history)
+# Find open+verified tickets and close them
+gh issue list -R rookiecj/scrum-agents -l "sprint:current" -l "status:verified" --state open --json number | \
+  jq -r '.[].number' | while read n; do
+    gh issue close "$n" -R rookiecj/scrum-agents --comment "✅ Closing verified ticket at sprint end."
+  done
+```
+
+For each closed (completed) ticket, remove sprint:current and ALL status labels:
+```bash
 gh issue edit <number> -R rookiecj/scrum-agents \
   --remove-label "sprint:current" \
-  --remove-label "status:verified"
+  --remove-label "status:planned" \
+  --remove-label "status:in-progress" \
+  --remove-label "status:dev-complete" \
+  --remove-label "status:in-review" \
+  --remove-label "status:verified" \
+  --remove-label "status:blocked"
 ```
 
 ### 6. Write Retrospective
