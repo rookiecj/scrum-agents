@@ -110,8 +110,11 @@ func (p *ClaudeProvider) Classify(content string) (*model.ClassificationResult, 
 	return p.classifier.Classify(content)
 }
 
-// Summarize generates a summary using Claude.
+// Summarize generates a summary using Claude with a pre-built prompt.
+// The prompt should be constructed by the summarizer package using the appropriate template.
 func (p *ClaudeProvider) Summarize(content string, category model.ContentCategory) (string, error) {
+	// This method is kept for backward compatibility.
+	// For type-specific summarization, use the summarizer package directly.
 	prompt := fmt.Sprintf("Summarize the following %s content concisely:\n\n%s", string(category), content)
 	return p.Complete(prompt)
 }
