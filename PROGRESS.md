@@ -4,7 +4,7 @@
 
 ## Sprint Goal
 
-기반 인프라 안정화: 미병합 피처 브랜치를 정리하고 CI 파이프라인을 구축하며, 미등록 API 엔드포인트를 라우터에 등록하여 전체 서비스 통합 기반을 확보한다.
+백엔드와 프론트엔드에 구조화된 로깅 정책을 적용하여, 일관된 로그 포맷과 레벨 기반 로깅 인프라를 확보한다.
 
 ## Board
 
@@ -18,7 +18,7 @@
 
 ### QA Queue (status:dev-complete)
 
-(none)
+- #21 [Story] Backend 구조화된 로깅 정책 적용 - log/slog (3pts, Backend) — PR #23
 
 ### In Review (status:in-review)
 
@@ -26,8 +26,7 @@
 
 ### Verified (status:verified)
 
-- #19 [Task] 피처 브랜치 main 병합 및 CI 구성 (2pts, Backend+Frontend) — CLOSED
-- #20 [Task] API 엔드포인트 등록 - classify, summarize (2pts, Backend) — CLOSED
+(none)
 
 ### Blocked (status:blocked)
 
@@ -37,11 +36,11 @@
 
 | # | Title | Agent | Status | Branch | Notes |
 |---|-------|-------|--------|--------|-------|
-| #19 | 피처 브랜치 main 병합 및 CI 구성 | sequential-dev | verified/closed | feature/19-branch-cleanup-ci | 3 브랜치 머지, 10 로컬 브랜치 정리, CI workflow 추가 |
-| #20 | API 엔드포인트 등록 (classify, summarize) | sequential-dev | verified/closed | feature/20-api-endpoint-registration | main.go에 2 엔드포인트 등록, 7 E2E 테스트 추가 |
+| #21 | Backend 구조화된 로깅 정책 적용 (log/slog) | backend-dev | dev-complete | feature/21-backend-logging | internal/logging pkg, HTTP middleware, handler logging, main.go migration |
 
 ## Handoff Notes
 
-- **From Sprint 2**: Templates in `backend/prompts/*.json`. Extractors in `internal/extractor/`. E2E tests in `backend/e2e/` and `frontend/e2e/`.
-- **CI Workflow** (#19): `.github/workflows/ci.yml` - Go build/test + Frontend build/test on push/PR to main.
-- **API Endpoints** (#20): `/api/classify` (POST, `{"content":"..."}`) and `/api/summarize` (POST, `{"content":"...","classification":{...}}`). Requires `ANTHROPIC_API_KEY` env var. Mock LLM client used in E2E tests.
+- **From Sprint 3**: Templates in `backend/prompts/*.json`. Extractors in `internal/extractor/`. E2E tests in `backend/e2e/` and `frontend/e2e/`.
+- **CI Workflow**: `.github/workflows/ci.yml` - Go build/test + Frontend build/test on push/PR to main.
+- **API Endpoints**: `/api/classify` (POST, `{"content":"..."}`) and `/api/summarize` (POST, `{"content":"...","classification":{...}}`). Requires `ANTHROPIC_API_KEY` env var.
+- **Logging (#21)**: New `internal/logging` package. `logging.Init()` sets up JSON slog handler; configure via `LOG_LEVEL` env var (debug/info/warn/error, default: info). `logging.Middleware(handler)` wraps HTTP handlers for automatic request logging (method, path, status, duration_ms). All handlers now log errors at Error level and successes at Debug level with structured attributes.
