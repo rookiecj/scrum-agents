@@ -32,3 +32,14 @@ func DefaultOpenAIConfig(apiKey string) Config {
 		MaxRetries: 3,
 	}
 }
+
+// DefaultGeminiConfig returns default configuration for Google Gemini.
+func DefaultGeminiConfig(apiKey string) Config {
+	return Config{
+		APIKey:     apiKey,
+		Model:      "gemini-2.0-flash",
+		MaxTokens:  4096,
+		Timeout:    30 * time.Second,
+		MaxRetries: 3,
+	}
+}

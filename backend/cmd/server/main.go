@@ -30,12 +30,28 @@ func main() {
 	mux.HandleFunc("POST /api/detect", handler.HandleDetect())
 	mux.HandleFunc("POST /api/extract", handler.HandleExtract())
 
-	// LLM-dependent endpoints
-	apiKey := os.Getenv("ANTHROPIC_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("CLAUDE_API_KEY")
+	// LLM provider registration
+	claudeKey := os.Getenv("ANTHROPIC_API_KEY")
+	if claudeKey == "" {
+		claudeKey = os.Getenv("CLAUDE_API_KEY")
 	}
-	provider := llm.NewClaudeProvider(llm.DefaultClaudeConfig(apiKey))
+	claudeProvider := llm.NewClaudeProvider(llm.DefaultClaudeConfig(claudeKey))
+
+	openaiKey := os.Getenv("OPENAI_API_KEY")
+	if openaiKey != "" {
+		slog.Info("OpenAI provider registered")
+	}
+
+	googleKey := os.Getenv("GOOGLE_API_KEY")
+	if googleKey != "" {
+		_ = llm.NewGeminiProvider(llm.DefaultGeminiConfig(googleKey))
+		slog.Info("Gemini provider registered")
+	} else {
+		slog.Warn("GOOGLE_API_KEY not set, Gemini provider disabled")
+	}
+
+	// Use Claude as the default provider for LLM-dependent endpoints
+	provider := claudeProvider
 
 	mux.HandleFunc("POST /api/classify", handler.HandleClassify(provider))
 
@@ -52,7 +68,7 @@ func main() {
 		)
 	}
 
-	if apiKey == "" {
+	if claudeKey == "" {
 		slog.Warn("ANTHROPIC_API_KEY not set, LLM endpoints will return errors")
 	}
 
