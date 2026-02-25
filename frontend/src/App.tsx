@@ -2,7 +2,19 @@ import { useState } from 'react'
 import { UrlInput } from './components/UrlInput'
 import { ProgressIndicator } from './components/ProgressIndicator'
 import { SummaryResult } from './components/SummaryResult'
+import { logger } from './utils/logger'
 import type { SummarizeResponse, SummarizeStep } from './types/api'
+
+/**
+ * Helper that performs a fetch and logs failures with the request URL and status code.
+ */
+async function fetchWithLogging(url: string, init: RequestInit): Promise<Response> {
+  const res = await fetch(url, init)
+  if (!res.ok) {
+    logger.error('API call failed', { url, status: res.status, statusText: res.statusText })
+  }
+  return res
+}
 
 export function App() {
   const [step, setStep] = useState<SummarizeStep>('done')
@@ -10,17 +22,20 @@ export function App() {
 
   const handleSubmit = async (url: string, provider: 'claude' | 'openai') => {
     setResult(null)
+    logger.info('Starting summarization', { url, provider })
 
     try {
       // Step 1: Detect
       setStep('detecting')
-      const detectRes = await fetch('/api/detect', {
+      logger.debug('Step: detecting link type', { url })
+      const detectRes = await fetchWithLogging('/api/detect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
       const detectData = await detectRes.json()
       if (detectData.error) {
+        logger.warn('Detect step returned an error', { url, error: detectData.error })
         setResult({ link_info: { url, link_type: 'unknown' }, classification: { primary: '기술소개', confidence: 0 }, summary: '', error: detectData.error })
         setStep('error')
         return
@@ -28,13 +43,15 @@ export function App() {
 
       // Step 2: Extract
       setStep('extracting')
-      const extractRes = await fetch('/api/extract', {
+      logger.debug('Step: extracting content', { url })
+      const extractRes = await fetchWithLogging('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
       const extractData = await extractRes.json()
       if (extractData.error && !extractData.content) {
+        logger.warn('Extract step returned an error', { url, error: extractData.error })
         setResult({ link_info: extractData.link_info, classification: { primary: '기술소개', confidence: 0 }, summary: '', error: extractData.error })
         setStep('error')
         return
@@ -42,7 +59,8 @@ export function App() {
 
       // Step 3: Classify
       setStep('classifying')
-      const classifyRes = await fetch('/api/classify', {
+      logger.debug('Step: classifying content', { url })
+      const classifyRes = await fetchWithLogging('/api/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: extractData.content, provider }),
@@ -51,7 +69,8 @@ export function App() {
 
       // Step 4: Summarize
       setStep('summarizing')
-      const summarizeRes = await fetch('/api/summarize', {
+      logger.debug('Step: generating summary', { url })
+      const summarizeRes = await fetchWithLogging('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,12 +87,15 @@ export function App() {
         summary: summarizeData.summary || summarizeData.error || 'No summary generated',
       })
       setStep('done')
+      logger.info('Summarization complete', { url })
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Summarization failed with exception', { url, error: errorMessage })
       setResult({
         link_info: { url, link_type: 'unknown' },
         classification: { primary: '기술소개', confidence: 0 },
         summary: '',
-        error: err instanceof Error ? err.message : 'An unexpected error occurred',
+        error: errorMessage,
       })
       setStep('error')
     }
