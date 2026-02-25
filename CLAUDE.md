@@ -25,7 +25,7 @@ GitHub Issues + Projects 기반 Scrum 개발 환경. Go 백엔드 + TypeScript �
 ### Issue Labels
 | Category | Labels |
 |----------|--------|
-| Type | `type:story`, `type:task`, `type:bug`, `type:spike` |
+| Type | `type:epic`, `type:story`, `type:task`, `type:bug`, `type:spike` |
 | Priority | `priority:critical`, `priority:high`, `priority:medium`, `priority:low` |
 | Sprint | `sprint:current`, `sprint:next`, `sprint:backlog` |
 | Component | `component:backend`, `component:frontend` |

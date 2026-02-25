@@ -1,0 +1,94 @@
+name: Epic
+description: Create a new epic spanning multiple stories or sprints
+title: "[Epic] "
+labels: ["type:epic", "sprint:backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Epic
+        An epic is a large feature that spans multiple stories or sprints.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Epic Summary
+      description: High-level description of what this epic delivers
+      placeholder: "Build a user authentication system supporting email login, social login, and password reset."
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What business or user outcome does this epic achieve?
+      placeholder: "Users can securely authenticate via multiple methods."
+    validations:
+      required: true
+
+  - type: textarea
+    id: child-stories
+    attributes:
+      label: Child Stories
+      description: List the stories that make up this epic. Use issue references (#number) for existing stories, or describe planned stories.
+      placeholder: |
+        - [ ] #12 [Story] User can log in with email
+        - [ ] #13 [Story] User can log in with social accounts
+        - [ ] [Story] User can reset password (to be created)
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included in this epic?
+      placeholder: |
+        - Email/password authentication
+        - OAuth integration (Google, GitHub)
+        - Password reset flow via email
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of Scope
+      description: What is explicitly excluded from this epic?
+      placeholder: |
+        - Two-factor authentication (future epic)
+        - SMS-based authentication
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0-Critical
+        - P1-High
+        - P2-Medium
+        - P3-Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Backend
+        - Frontend
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Any additional context, dependencies, risks, or references
+    validations:
+      required: false
