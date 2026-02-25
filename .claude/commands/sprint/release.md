@@ -139,6 +139,7 @@ EOF
 ### 7. Create Tag and Push
 
 ```bash
+git fetch origin --tag
 # Create annotated tag
 git tag -a "v<new-version>" -m "Release v<new-version>"
 
