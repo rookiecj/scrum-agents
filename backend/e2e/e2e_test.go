@@ -63,12 +63,12 @@ func setupAPIServer() *httptest.Server {
 	// LLM-dependent endpoints with mock client
 	mock := &mockLLMClient{}
 	cls := classifier.NewLLMClassifier(mock)
-	mux.HandleFunc("POST /api/classify", handler.HandleClassify(cls))
+	mux.HandleFunc("POST /api/classify", handler.HandleClassify(cls, nil))
 
 	registry, err := summarizer.LoadTemplates("../prompts")
 	if err == nil {
 		sum := summarizer.NewSummarizer(registry, 0.6)
-		mux.HandleFunc("POST /api/summarize", handler.HandleSummarize(sum, mock))
+		mux.HandleFunc("POST /api/summarize", handler.HandleSummarize(sum, mock, nil))
 	}
 
 	return httptest.NewServer(mux)
@@ -563,7 +563,7 @@ func TestE2E_Summarize(t *testing.T) {
 		}
 	})
 
-	t.Run("missing classification", func(t *testing.T) {
+	t.Run("missing classification and category", func(t *testing.T) {
 		body := map[string]any{"content": "Some content to summarize"}
 		resp := postJSON(t, srv.URL+"/api/summarize", body)
 		if resp.StatusCode != http.StatusBadRequest {
@@ -571,8 +571,30 @@ func TestE2E_Summarize(t *testing.T) {
 		}
 		var sr summarizeResponse
 		decodeJSON(t, resp, &sr)
-		if !strings.Contains(sr.Error, "classification is required") {
-			t.Errorf("error = %q, want containing 'classification is required'", sr.Error)
+		if !strings.Contains(sr.Error, "classification or category is required") {
+			t.Errorf("error = %q, want containing 'classification or category is required'", sr.Error)
+		}
+	})
+
+	t.Run("valid request with category string", func(t *testing.T) {
+		body := map[string]any{
+			"content":  "This is a technical introduction to Go concurrency patterns.",
+			"category": "기술소개",
+		}
+		resp := postJSON(t, srv.URL+"/api/summarize", body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status = %d, want 200", resp.StatusCode)
+		}
+		var sr summarizeResponse
+		decodeJSON(t, resp, &sr)
+		if sr.Error != "" {
+			t.Errorf("unexpected error: %s", sr.Error)
+		}
+		if sr.Result == nil {
+			t.Fatal("expected result in response")
+		}
+		if sr.Result.Summary == "" {
+			t.Error("expected non-empty summary")
 		}
 	})
 

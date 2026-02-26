@@ -115,7 +115,7 @@ export function App() {
       setResult({
         link_info: extractData.link_info,
         classification: classifyData.classification || { primary: '기술소개', confidence: 0 },
-        summary: summarizeData.summary || summarizeData.error || 'No summary generated',
+        summary: summarizeData.result?.summary || summarizeData.error || 'No summary generated',
       })
       setStep('done')
       logger.info('Summarization complete', { url })
