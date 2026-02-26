@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/rookiecj/scrum-agents/backend/internal/auth"
 	"github.com/rookiecj/scrum-agents/backend/internal/handler"
 	"github.com/rookiecj/scrum-agents/backend/internal/llm"
 	"github.com/rookiecj/scrum-agents/backend/internal/logging"
@@ -22,11 +24,38 @@ func main() {
 		)
 	}
 
+	// Database & Auth setup
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "scrum-agents.db"
+	}
+
+	store, err := auth.NewStore(dbPath)
+	if err != nil {
+		slog.Error("failed to initialise database", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer store.Close()
+	slog.Info("database initialised", slog.String("path", dbPath))
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "dev-secret-change-in-production"
+		slog.Warn("JWT_SECRET not set, using insecure default — set JWT_SECRET for production")
+	}
+	jwtSvc := auth.NewJWTService(jwtSecret, 24*time.Hour)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status":"ok","version":"%s"}`, Version)
 	})
+
+	// Auth endpoints (public)
+	mux.HandleFunc("POST /api/signup", handler.HandleSignup(store))
+	mux.HandleFunc("POST /api/login", handler.HandleLogin(store, jwtSvc))
+
+	// Public API endpoints
 	mux.HandleFunc("POST /api/detect", handler.HandleDetect())
 	mux.HandleFunc("POST /api/extract", handler.HandleExtract())
 	mux.HandleFunc("GET /api/providers", handler.HandleProviders())
