@@ -49,7 +49,7 @@ func TestHandleSummarize(t *testing.T) {
 	s := newTestSummarizer(t)
 	client := &mockSummarizerLLM{response: "## 핵심 원리\nTCP is..."}
 
-	handler := HandleSummarize(s, client)
+	handler := HandleSummarize(s, client, nil)
 
 	tests := []struct {
 		name       string
@@ -86,7 +86,12 @@ func TestHandleSummarize(t *testing.T) {
 			wantError:  true,
 		},
 		{
-			name:       "missing classification",
+			name:       "category string instead of classification",
+			body:       SummarizeRequest{Content: "TCP works by establishing connections...", Category: "원리소개"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "missing classification and category",
 			body:       SummarizeRequest{Content: "some content"},
 			wantStatus: http.StatusBadRequest,
 			wantError:  true,
@@ -131,7 +136,7 @@ func TestHandleSummarize_LLMError(t *testing.T) {
 	s := newTestSummarizer(t)
 	client := &mockSummarizerLLM{err: fmt.Errorf("API down")}
 
-	handler := HandleSummarize(s, client)
+	handler := HandleSummarize(s, client, nil)
 
 	body := SummarizeRequest{
 		Content: "test content",

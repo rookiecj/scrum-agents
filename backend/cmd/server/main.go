@@ -61,29 +61,35 @@ func main() {
 	mux.HandleFunc("GET /api/providers", handler.HandleProviders())
 
 	// LLM provider registration
+	providers := make(map[string]llm.Provider)
+
 	claudeKey := os.Getenv("ANTHROPIC_API_KEY")
 	if claudeKey == "" {
 		claudeKey = os.Getenv("CLAUDE_API_KEY")
 	}
 	claudeProvider := llm.NewClaudeProvider(llm.DefaultClaudeConfig(claudeKey))
+	providers["claude"] = claudeProvider
 
 	openaiKey := os.Getenv("OPENAI_API_KEY")
 	if openaiKey != "" {
+		providers["openai"] = llm.NewOpenAIProvider(llm.DefaultOpenAIConfig(openaiKey))
 		slog.Info("OpenAI provider registered")
+	} else {
+		slog.Warn("OPENAI_API_KEY not set, OpenAI provider disabled")
 	}
 
 	googleKey := os.Getenv("GOOGLE_API_KEY")
 	if googleKey != "" {
-		_ = llm.NewGeminiProvider(llm.DefaultGeminiConfig(googleKey))
+		providers["gemini"] = llm.NewGeminiProvider(llm.DefaultGeminiConfig(googleKey))
 		slog.Info("Gemini provider registered")
 	} else {
 		slog.Warn("GOOGLE_API_KEY not set, Gemini provider disabled")
 	}
 
 	// Use Claude as the default provider for LLM-dependent endpoints
-	provider := claudeProvider
+	defaultProvider := claudeProvider
 
-	mux.HandleFunc("POST /api/classify", handler.HandleClassify(provider))
+	mux.HandleFunc("POST /api/classify", handler.HandleClassify(defaultProvider, providers))
 
 	registry, err := summarizer.LoadTemplates("prompts")
 	if err != nil {
@@ -92,7 +98,7 @@ func main() {
 		)
 	} else {
 		sum := summarizer.NewSummarizer(registry, 0.6)
-		mux.HandleFunc("POST /api/summarize", handler.HandleSummarize(sum, provider))
+		mux.HandleFunc("POST /api/summarize", handler.HandleSummarize(sum, defaultProvider, providers))
 		slog.Info("prompt templates loaded",
 			slog.Int("template_count", len(registry.Categories())),
 		)

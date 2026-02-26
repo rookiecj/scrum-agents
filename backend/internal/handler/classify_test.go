@@ -67,7 +67,7 @@ func TestHandleClassify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cls := &mockClassifier{result: tt.result, err: tt.classErr}
-			handler := HandleClassify(cls)
+			handler := HandleClassify(cls, nil)
 
 			req := httptest.NewRequest("POST", "/api/classify", bytes.NewBufferString(tt.body))
 			req.Header.Set("Content-Type", "application/json")
