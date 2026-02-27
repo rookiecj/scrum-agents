@@ -3,6 +3,7 @@ package classifier
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/rookiecj/scrum-agents/backend/internal/model"
 )
@@ -31,8 +32,10 @@ func (c *LLMClassifier) Classify(content string) (*model.ClassificationResult, e
 		return nil, fmt.Errorf("LLM classification failed: %w", err)
 	}
 
+	cleaned := stripCodeFences(response)
+
 	var result model.ClassificationResult
-	if err := json.Unmarshal([]byte(response), &result); err != nil {
+	if err := json.Unmarshal([]byte(cleaned), &result); err != nil {
 		return nil, fmt.Errorf("parsing classification response: %w", err)
 	}
 
@@ -41,6 +44,22 @@ func (c *LLMClassifier) Classify(content string) (*model.ClassificationResult, e
 	}
 
 	return &result, nil
+}
+
+// stripCodeFences removes markdown code fences that some LLM providers
+// wrap around JSON responses (e.g., ```json ... ```).
+func stripCodeFences(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		if idx := strings.Index(s, "\n"); idx >= 0 {
+			s = s[idx+1:]
+		}
+		if idx := strings.LastIndex(s, "```"); idx >= 0 {
+			s = s[:idx]
+		}
+		s = strings.TrimSpace(s)
+	}
+	return s
 }
 
 func isValidCategory(cat model.ContentCategory) bool {
