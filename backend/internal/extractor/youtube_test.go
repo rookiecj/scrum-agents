@@ -3,6 +3,7 @@ package extractor
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/rookiecj/scrum-agents/backend/internal/model"
@@ -46,7 +47,7 @@ func TestExtractVideoID(t *testing.T) {
 func TestExtractVideoMetadata(t *testing.T) {
 	html := `<html>
 <head><meta property="og:title" content="Test Video Title"></head>
-<body><script>var ytInitialData = {"ownerChannelName":"Test Channel"}</script></body>
+<body><script>var ytInitialData = {"ownerChannelName":"Test Channel","shortDescription":"This is a test video about Go concurrency.\nLearn more at example.com"}</script></body>
 </html>`
 
 	meta := extractVideoMetadata(html)
@@ -55,6 +56,42 @@ func TestExtractVideoMetadata(t *testing.T) {
 	}
 	if meta.Channel != "Test Channel" {
 		t.Errorf("channel = %q, want %q", meta.Channel, "Test Channel")
+	}
+	if !strings.Contains(meta.Description, "Go concurrency") {
+		t.Errorf("description should contain 'Go concurrency', got %q", meta.Description)
+	}
+}
+
+func TestBuildMetadataContent(t *testing.T) {
+	tests := []struct {
+		name string
+		meta VideoMetadata
+		want string
+	}{
+		{
+			name: "full metadata",
+			meta: VideoMetadata{Title: "My Video", Channel: "My Channel", Description: "A great video"},
+			want: "Title: My Video\n\nChannel: My Channel\n\nDescription:\nA great video",
+		},
+		{
+			name: "no description",
+			meta: VideoMetadata{Title: "My Video", Channel: "My Channel"},
+			want: "Title: My Video\n\nChannel: My Channel",
+		},
+		{
+			name: "empty metadata",
+			meta: VideoMetadata{},
+			want: "No content available for this video.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildMetadataContent(tt.meta)
+			if got != tt.want {
+				t.Errorf("buildMetadataContent() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -116,19 +153,79 @@ func TestParseXMLTranscript(t *testing.T) {
 	}
 }
 
-func TestYouTubeExtractor_Extract_NoCaptions(t *testing.T) {
-	// Simulate a YouTube page without captions
+// youtubeTestClient creates an http.Client that redirects youtube.com requests to a local test server.
+func youtubeTestClient(server *httptest.Server) *http.Client {
+	return &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			req.URL.Scheme = "http"
+			req.URL.Host = strings.TrimPrefix(server.URL, "http://")
+			return http.DefaultTransport.RoundTrip(req)
+		}),
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestYouTubeExtractor_Extract_NoCaptions_FallbackToDescription(t *testing.T) {
+	pageHTML := `<html>
+<head><meta property="og:title" content="No Caption Video"></head>
+<body><script>var ytInitialData = {"ownerChannelName":"Test Channel","shortDescription":"This video explains Go patterns.\nVery useful."}</script></body>
+</html>`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><meta property="og:title" content="No Caption Video"></head><body>no captions data</body></html>`))
+		w.Write([]byte(pageHTML))
 	}))
 	defer server.Close()
 
-	_ = &YouTubeExtractor{Client: server.Client()}
-
-	// Test that extractVideoID works correctly (unit test)
-	_, err := extractVideoID("https://www.youtube.com/watch?v=test123")
+	ext := &YouTubeExtractor{Client: youtubeTestClient(server)}
+	result, err := ext.Extract("https://www.youtube.com/watch?v=test123")
 	if err != nil {
-		t.Fatalf("extractVideoID failed: %v", err)
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.LinkInfo.Title != "No Caption Video" {
+		t.Errorf("title = %q, want %q", result.LinkInfo.Title, "No Caption Video")
+	}
+	if !strings.Contains(result.Content, "Go patterns") {
+		t.Errorf("content should contain description fallback, got %q", result.Content)
+	}
+	if result.Content == "" {
+		t.Error("content should not be empty when description is available")
+	}
+}
+
+func TestYouTubeExtractor_Extract_EmptyTranscript_FallbackToDescription(t *testing.T) {
+	// All requests (page + captions) go to this server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "timedtext") {
+			// Captions endpoint returns empty (simulates YouTube blocking)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		// YouTube page with captions URL pointing to localhost timedtext
+		pageHTML := `<html>
+<head><meta property="og:title" content="Blocked Transcript Video"></head>
+<body><script>
+var ytInitialPlayerResponse = {
+"ownerChannelName":"Test Channel",
+"shortDescription":"Learn about microservices architecture.",
+"captionTracks":[{"baseUrl":"https://www.youtube.com/api/timedtext?v=abc\u0026lang=en","name":{"simpleText":"English"}}]
+}
+</script></body>
+</html>`
+		w.Write([]byte(pageHTML))
+	}))
+	defer server.Close()
+
+	ext := &YouTubeExtractor{Client: youtubeTestClient(server)}
+	result, err := ext.Extract("https://www.youtube.com/watch?v=abc123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(result.Content, "microservices") {
+		t.Errorf("content should fall back to description, got %q", result.Content)
 	}
 }
 

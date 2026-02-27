@@ -62,34 +62,31 @@ func (e *YouTubeExtractor) Extract(rawURL string) (*model.ExtractedContent, erro
 
 	metadata := extractVideoMetadata(pageHTML)
 
+	linkInfo := model.LinkInfo{
+		URL:      rawURL,
+		LinkType: model.LinkTypeYouTube,
+		Title:    metadata.Title,
+		Author:   metadata.Channel,
+	}
+
 	// Try to get captions URL from the page
 	captionsURL, err := extractCaptionsURL(pageHTML)
-	if err != nil {
-		return &model.ExtractedContent{
-			LinkInfo: model.LinkInfo{
-				URL:      rawURL,
-				LinkType: model.LinkTypeYouTube,
-				Title:    metadata.Title,
-				Author:   metadata.Channel,
-			},
-			Content: "No captions available for this video.",
-		}, nil
+	if err == nil {
+		// Fetch the transcript
+		transcript, fetchErr := e.fetchTranscript(captionsURL)
+		if fetchErr == nil && transcript != "" {
+			return &model.ExtractedContent{
+				LinkInfo: linkInfo,
+				Content:  transcript,
+			}, nil
+		}
 	}
 
-	// Fetch the transcript
-	transcript, err := e.fetchTranscript(captionsURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetching transcript: %w", err)
-	}
-
+	// Fallback: build content from video metadata (title + description + channel)
+	content := buildMetadataContent(metadata)
 	return &model.ExtractedContent{
-		LinkInfo: model.LinkInfo{
-			URL:      rawURL,
-			LinkType: model.LinkTypeYouTube,
-			Title:    metadata.Title,
-			Author:   metadata.Channel,
-		},
-		Content: transcript,
+		LinkInfo: linkInfo,
+		Content:  content,
 	}, nil
 }
 
@@ -127,7 +124,7 @@ func extractVideoID(rawURL string) (string, error) {
 	return "", fmt.Errorf("not a YouTube URL: %s", host)
 }
 
-// extractVideoMetadata extracts title and channel from the YouTube page HTML.
+// extractVideoMetadata extracts title, channel, and description from the YouTube page HTML.
 func extractVideoMetadata(html string) VideoMetadata {
 	meta := VideoMetadata{}
 
@@ -137,13 +134,44 @@ func extractVideoMetadata(html string) VideoMetadata {
 		meta.Title = m[1]
 	}
 
-	// Extract channel from link with itemprop="name"
+	// Extract channel from ownerChannelName
 	channelRe := regexp.MustCompile(`"ownerChannelName":"([^"]*)"`)
 	if m := channelRe.FindStringSubmatch(html); len(m) > 1 {
 		meta.Channel = m[1]
 	}
 
+	// Extract full description from shortDescription JSON field
+	descRe := regexp.MustCompile(`"shortDescription":"((?:[^"\\]|\\.)*)"`)
+	if m := descRe.FindStringSubmatch(html); len(m) > 1 {
+		desc := strings.ReplaceAll(m[1], `\n`, "\n")
+		desc = strings.ReplaceAll(desc, `\"`, `"`)
+		desc = strings.ReplaceAll(desc, `\\`, `\`)
+		meta.Description = desc
+	}
+
 	return meta
+}
+
+// buildMetadataContent creates summarizable content from video metadata
+// when transcript extraction is not available.
+func buildMetadataContent(meta VideoMetadata) string {
+	var parts []string
+
+	if meta.Title != "" {
+		parts = append(parts, "Title: "+meta.Title)
+	}
+	if meta.Channel != "" {
+		parts = append(parts, "Channel: "+meta.Channel)
+	}
+	if meta.Description != "" {
+		parts = append(parts, "Description:\n"+meta.Description)
+	}
+
+	if len(parts) == 0 {
+		return "No content available for this video."
+	}
+
+	return strings.Join(parts, "\n\n")
 }
 
 // extractCaptionsURL finds the captions/transcript URL from the YouTube page source.
