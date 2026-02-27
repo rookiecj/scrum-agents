@@ -3,6 +3,7 @@ package classifier
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/rookiecj/scrum-agents/backend/internal/model"
 )
@@ -32,7 +33,8 @@ func (c *LLMClassifier) Classify(content string) (*model.ClassificationResult, e
 	}
 
 	var result model.ClassificationResult
-	if err := json.Unmarshal([]byte(response), &result); err != nil {
+	cleaned := stripCodeFences(response)
+	if err := json.Unmarshal([]byte(cleaned), &result); err != nil {
 		return nil, fmt.Errorf("parsing classification response: %w", err)
 	}
 
@@ -50,4 +52,22 @@ func isValidCategory(cat model.ContentCategory) bool {
 		}
 	}
 	return false
+}
+
+// stripCodeFences removes markdown code fences from LLM responses.
+// Some providers (e.g., OpenAI) wrap JSON output in ```json ... ```.
+func stripCodeFences(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		// Remove opening fence (e.g., ```json or ```)
+		if idx := strings.Index(s, "\n"); idx >= 0 {
+			s = s[idx+1:]
+		}
+		// Remove closing fence
+		if idx := strings.LastIndex(s, "```"); idx >= 0 {
+			s = s[:idx]
+		}
+		s = strings.TrimSpace(s)
+	}
+	return s
 }
