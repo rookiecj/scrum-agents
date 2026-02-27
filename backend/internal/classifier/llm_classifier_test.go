@@ -166,6 +166,62 @@ func TestIsValidCategory(t *testing.T) {
 	}
 }
 
+func TestStripCodeFences(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "no code fences",
+			input: `{"primary":"튜토리얼","confidence":0.95}`,
+			want:  `{"primary":"튜토리얼","confidence":0.95}`,
+		},
+		{
+			name:  "json code fence",
+			input: "```json\n{\"primary\":\"튜토리얼\",\"confidence\":0.95}\n```",
+			want:  `{"primary":"튜토리얼","confidence":0.95}`,
+		},
+		{
+			name:  "plain code fence",
+			input: "```\n{\"primary\":\"뉴스/분석\",\"confidence\":0.8}\n```",
+			want:  `{"primary":"뉴스/분석","confidence":0.8}`,
+		},
+		{
+			name:  "with surrounding whitespace",
+			input: "  \n```json\n{\"primary\":\"사용기\",\"confidence\":0.9}\n```\n  ",
+			want:  `{"primary":"사용기","confidence":0.9}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripCodeFences(tt.input)
+			if got != tt.want {
+				t.Errorf("stripCodeFences() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLLMClassifier_Classify_CodeFences(t *testing.T) {
+	client := &mockLLMClient{
+		response: "```json\n{\"primary\":\"튜토리얼\",\"confidence\":0.95}\n```",
+	}
+	classifier := NewLLMClassifier(client)
+
+	result, err := classifier.Classify("some content")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Primary != model.CategoryTutorial {
+		t.Errorf("primary = %q, want %q", result.Primary, model.CategoryTutorial)
+	}
+	if result.Confidence != 0.95 {
+		t.Errorf("confidence = %f, want 0.95", result.Confidence)
+	}
+}
+
 func containsString(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstring(s, substr))
 }
